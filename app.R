@@ -191,7 +191,6 @@ server <- function(input, output, session) {
   
   treeFile <- reactive({
     fileInput <- input$treeFile
-    message(fileInput)
     if (is.null(input)) {
       return("No tree file selected.")
     }
@@ -282,7 +281,6 @@ server <- function(input, output, session) {
   
   metaPath <- reactive({
     fileInput <- input$metaFile
-    message("Trying ", fileInput)
     exampleFile <- ""
     if (is.null(fileInput)) {
       if (exampleFile == "") {
@@ -334,7 +332,6 @@ server <- function(input, output, session) {
   
   metadata <- reactive({
     fp <- metaPath()
-    message(metaExt())
     ret <- switch(metaExt(),
                   ".csv" = read.csv(fp, row.names = 1),
                   ".txt" = read.table(fp, row.names = 1),
@@ -347,7 +344,6 @@ server <- function(input, output, session) {
                   }
     )
     
-    message(dim(ret))
     if (!is.null(dim(ret))) {
       show("ptCol")
       show("pch")
