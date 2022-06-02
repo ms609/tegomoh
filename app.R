@@ -170,16 +170,16 @@ ui <- fluidPage(
               tags$span("pixels"),
       ),
 
-      withTags(
-        div(id = 'caption',
-           p("If using figures in a publication, please cite Smith (2017). ",
-             '"Ternary: An R Package for Creating Ternary Plots." ',
-             "Comprehensive R Archive Network, doi:",
-             a(href = "https://dx.doi.org/10.5281/zenodo.1068996",
-               "10.5281/zenodo.1068996")
-            ),
-        )
-      ),
+      # withTags(
+      #   div(id = "caption",
+      #      p("If using figures in a publication, please cite Smith (2017). ",
+      #        '"Ternary: An R Package for Creating Ternary Plots." ',
+      #        "Comprehensive R Archive Network, doi:",
+      #        a(href = "https://dx.doi.org/10.5281/zenodo.1068996",
+      #          "10.5281/zenodo.1068996")
+      #       ),
+      #   )
+      # ),
     )
   )
 )
