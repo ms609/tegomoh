@@ -381,11 +381,11 @@ server <- function(input, output, session) {
       par(mar = rep(0, 4))
       plot.new()
       if (!input$ptCol %in% c("Fixed", "Cluster")) {
-        legend("right", pch = 15, col = pal, levels(colCategories),
-               bty = "n", cex = 2)
+        legend("top", pch = 15, col = pal, levels(colCategories),
+               bty = "n", pt.cex = 2)
       }
       if (!input$pch %in% c("Fixed", "Cluster")) {
-        legend("left", col = 1, cex = 2, bty = "n",
+        legend("bottom", col = 1, pt.cex = 2, bty = "n",
                pch = seq_along(levels(pchCategories)),
                levels(pchCategories))
       }
