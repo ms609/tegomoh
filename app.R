@@ -380,7 +380,6 @@ server <- function(input, output, session) {
       layout(matrix(1:2, 1), widths = c(1, 3))
       par(mar = rep(0, 4))
       plot.new()
-      plot.new()
       if (!input$ptCol %in% c("Fixed", "Cluster")) {
         legend("right", pch = 15, col = pal, levels(colCategories),
                bty = "n", cex = 2)
