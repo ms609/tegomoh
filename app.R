@@ -147,7 +147,7 @@ ui <- fluidPage(
     
     mainPanel(
       fluidRow(d3Output(outputId = "d3Plot")),
-      fluidRow(plotOutput(outputId = "treePlot", height = "200px")),
+      fluidRow(plotOutput(outputId = "mainPlot", width = "80%", height = "900px")),
       fluidRow(textOutput(outputId = "plotQual")),
       fluidRow(id = "saveButtons",
                tags$span("Save as: "),
@@ -201,9 +201,8 @@ server <- function(input, output, session) {
     }
     
     ret <- c(ret)
-    dput(ret)
     nTrees <- length(ret)
-    if (nTrees > 1) {
+    if (nTrees) {
       show("whichTree")
       updateSliderInput(session, "whichTree", value = 1, max = nTrees)
     } else {
@@ -352,7 +351,7 @@ server <- function(input, output, session) {
     ret
   })
   
-  TreePlot <- function() {
+  DoPlot <- function() {
     if (treeLoaded()) {
       
       cluster <- clusters()$clust
@@ -378,9 +377,36 @@ server <- function(input, output, session) {
                pchby <- as.integer(pchCategories)
              }
       )
-      layout(matrix(1:2, 1), widths = c(1, 3))
-      par(mar = rep(0, 4))
-      plot.new()
+      
+      layout(matrix(c(1, 1, 2, 3), 2, 2), widths = c(1, 2), heights = c(2, 1))
+      par(mar = rep(0.1, 4))
+      plot(tree(), tip.color = colby, cex = 0.7)
+      plot(mapping(), asp = 1, frame.plot = FALSE, axes = FALSE,
+           xlab = "", ylab = "", cex = input$ptCex,
+           col = colby, pch = pchby)
+      
+      # Hulls
+      if ("hulls" %in% input$display) {
+        for (clI in unique(cluster)) {
+          inCluster <- cluster == clI
+          clusterX <- mapping()[inCluster, 1]
+          clusterY <- mapping()[inCluster, 2]
+          hull <- chull(clusterX, clusterY)
+          grown <- Ternary::GrowPolygon(clusterX[hull], clusterY[hull], 0.3)
+          polygon(grown, lty = 1, lwd = 2, border = clI)
+          text(mean(clusterX), mean(clusterY), clI, col = clI, font = 2, pos = 1)
+        }
+      }
+      
+      # Scale bar
+      corners <- par("usr")
+      nSNP <- 5L
+      text(corners[2] - 1 - (nSNP / 2), corners[3] + 1,
+           paste0("~", nSNP, " SNP"), pos = 3, xpd = NA)
+      lines(c(corners[2] - 1, corners[2] - 1 - nSNP),
+            rep(corners[3], 2) + 1, lwd = 2, xpd = NA)
+      
+      
       plot.new()
       if (!input$ptCol %in% c("Fixed", "Cluster")) {
         legend("right", pch = 15, col = pal, levels(colCategories),
@@ -391,55 +417,26 @@ server <- function(input, output, session) {
                pch = seq_along(levels(pchCategories)),
                levels(pchCategories))
       }
-      plot(tree(), tip.color = colby, cex = 0.7)
+      
+      # poEdge <- Postorder(tree())$edge
+      # parent <- poEdge[, 1]
+      # child <- poEdge[, 2]
+      # xy <- matrix(0, parent[1], 2)
+      # xy[seq_len(NTip(tree())), ] <- mapping()
+      # for (node in unique(parent)) {
+      #   xy[node, ] <- colMeans(xy[child[parent == node], , drop = FALSE])
+      # }
+      # segments(xy[parent, 1], xy[parent, 2],
+      #          xy[child, 1], xy[child, 2],
+      #          col = "#00000033")
+      # points(xy[parent, 1], xy[parent, 2], pch = ".", col = "#00000099")
     }
   }
   
-  MapPlot <- function() {
-    if (treeLoaded()) {
-      cluster <- clusters()$clust
-      metadata()
-      switch(input$ptCol,
-             "Cluster" = {
-               colby <- hcl.colors(max(cluster), "dark2")[cluster]
-             }, "Fixed" = {
-               colby <- 1
-             }, {
-               colCategories <- as.factor(metadata()[names(cluster), input$ptCol])
-               pal <- hcl.colors(length(levels(colCategories)), "dark2", 0.9)
-               colby <- pal[as.integer(colCategories)]
-             }
-      )
-      switch(input$pch,
-             "Cluster" = {
-               txtby <- cluster
-             }, "Fixed" = {
-               txtby <- ""
-             }, {
-               txtby <- metadata()[names(cluster), input$pch]
-             }
-      )
-      
-      
-      d <- distances()
-      colnames(d) <- paste0("d", seq_len(ncol(d)) - 1)
-      m <- mapping()
-      m <- m + min(m)
-      m <- m / max(m)
-      colnames(m) <- c("mappedX", "mappedY")
-      d3Data <- cbind(d, m, metadata())
-      dput(head(d3Data))
-      r2d3(d3Data,
-           script = "plot.js",
-           options = list(
-             col = colby,
-             txt = txtby))
-    }
-  }
-  
-  
-  output$treePlot <- renderPlot(TreePlot())
-  output$d3Plot <- renderD3(MapPlot())
+  output$mainPlot <- renderPlot(DoPlot())
+  output$d3Plot <- renderD3({
+    r2d3(runif(5, 0, 1), script = "plot.js")
+  })
   output$plotQual <- renderText({
     if (treeLoaded()) {
       paste0("Trustworthiness: ", signif(mapQual()[1], 3),
