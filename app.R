@@ -1,32 +1,21 @@
 # Install and load required libraries
-if(!requireNamespace("TreeTools", quietly = TRUE)) {
-  install.packages("TreeTools")
+Require <- function (packages) {
+  for (pkg in packages) {
+    if(!requireNamespace(pkg, quietly = TRUE)) {
+      install.packages(pkg)
+    }
+    library(pkg, character.only = TRUE)
+  }
 }
-library("TreeTools")
+  
+Require(c("TreeTools", "TreeDist", "protoclust", "shiny", "r2d3"))
 
-if(!requireNamespace("TreeDist", quietly = TRUE)) {
-  install.packages("TreeDist")
-}
-
-if(!requireNamespace("protoclust", quietly = TRUE)) {
-  install.packages("protoclust")
-}
-library("protoclust")
-
-library("shiny")
 if (!requireNamespace("shinyjs", quietly = TRUE,
-                      exclude = c("colourInput", "updateColourInput",
-                                  "colourPicker", "runExample"))) {
+                      exclude = "runExample")) {
   install.packages("shinyjs")
-  install.packages("colourpicker") # Necessarily absent, as imports shinyjs
 }
-library("shinyjs", exclude = c("colourInput", "colourPicker",
-                               "updateColourInput", "runExample"))
+library("shinyjs", exclude = "runExample")
 
-if (!requireNamespace("colourpicker", quietly = TRUE)) {
-  install.packages("colourpicker")
-}
-library("colourpicker")
 
 ltyInput <- function (id, name, val, none = TRUE) {
   selectInput(id, paste(name, "line type"),
@@ -171,16 +160,16 @@ ui <- fluidPage(
               tags$span("pixels"),
       ),
 
-      withTags(
-        div(id = 'caption',
-           p("If using figures in a publication, please cite Smith (2017). ",
-             '"Ternary: An R Package for Creating Ternary Plots." ',
-             "Comprehensive R Archive Network, doi:",
-             a(href = "https://dx.doi.org/10.5281/zenodo.1068996",
-               "10.5281/zenodo.1068996")
-            ),
-        )
-      ),
+      # withTags(
+      #   div(id = "caption",
+      #      p("If using figures in a publication, please cite Smith (2017). ",
+      #        '"Ternary: An R Package for Creating Ternary Plots." ',
+      #        "Comprehensive R Archive Network, doi:",
+      #        a(href = "https://dx.doi.org/10.5281/zenodo.1068996",
+      #          "10.5281/zenodo.1068996")
+      #       ),
+      #   )
+      # ),
     )
   )
 )
@@ -192,7 +181,6 @@ server <- function(input, output, session) {
 
   treeFile <- reactive({
     fileInput <- input$treeFile
-    message(fileInput)
     if (is.null(input)) {
       return("No tree file selected.")
     }
@@ -202,7 +190,7 @@ server <- function(input, output, session) {
     }
     if (length(grep("#NEXUS", toupper(readLines(tmpFile)[1]),
                     fixed = TRUE)) > 0) {
-      ret <- read.nexus(tmpFile)
+      ret <- read.nexus(tmpFile, force.multi = TRUE)
     } else {
       ret <- ReadTntTree(tmpFile)
       if (length(ret) == 0) ret <- read.tree(tmpFile)
@@ -260,8 +248,8 @@ server <- function(input, output, session) {
       bestPam <- which.max(pamSils)
       pamSil <- pamSils[bestPam]
       pamCluster <- pamClusters[[bestPam]]$cluster
-
-      hTree <- protoclust(distances())
+      
+      hTree <- protoclust(as.dist(distances()))
       hClusters <- lapply(possibleClusters, function(k) cutree(hTree, k = k))
       hSils <- vapply(hClusters, function(hCluster) {
         mean(cluster::silhouette(hCluster, distances())[, 3])
@@ -284,7 +272,6 @@ server <- function(input, output, session) {
 
   metaPath <- reactive({
     fileInput <- input$metaFile
-    message("Trying ", fileInput)
     exampleFile <- ""
     if (is.null(fileInput)) {
       if (exampleFile == "") {
@@ -336,7 +323,6 @@ server <- function(input, output, session) {
 
   metadata <- reactive({
     fp <- metaPath()
-    message(metaExt())
     ret <- switch(metaExt(),
                   ".csv" = read.csv(fp, row.names = 1),
                   ".txt" = read.table(fp, row.names = 1),
@@ -348,20 +334,16 @@ server <- function(input, output, session) {
                     matrix(0, 0, 3)
                   }
     )
-
-    message(dim(ret))
     if (!is.null(dim(ret))) {
       show("ptCol")
       show("pch")
       cn <- colnames(ret)
       metaOpts <- c("Fixed", "Cluster", cn)
       updateSelectInput(session, "ptCol",
-                        choices = setNames(metaOpts, metaOpts),
-                        selected = input$ptCol)
+                        choices = setNames(metaOpts, metaOpts))
       updateSelectInput(session, "pch",
                         choices = setNames(metaOpts, metaOpts))
     } else {
-      dput(ret)
       hide("ptCol")
       hide("pch")
     }
@@ -381,7 +363,6 @@ server <- function(input, output, session) {
                colby <- 1
              }, {
                colCategories <- as.factor(metadata()[names(cluster), input$ptCol])
-               dput(colCategories)
                pal <- hcl.colors(length(levels(colCategories)), "dark2", 0.9)
                colby <- pal[as.integer(colCategories)]
              }
