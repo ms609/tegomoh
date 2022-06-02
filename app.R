@@ -200,7 +200,7 @@ server <- function(input, output, session) {
     }
     if (length(grep("#NEXUS", toupper(readLines(tmpFile)[1]),
                     fixed = TRUE)) > 0) {
-      ret <- read.nexus(tmpFile)
+      ret <- read.nexus(tmpFile, force.multi = TRUE)
     } else {
       ret <- ReadTntTree(tmpFile)
       if (length(ret) == 0) ret <- read.tree(tmpFile)
@@ -258,7 +258,7 @@ server <- function(input, output, session) {
       pamSil <- pamSils[bestPam]
       pamCluster <- pamClusters[[bestPam]]$cluster
       
-      hTree <- protoclust(distances())
+      hTree <- protoclust(as.dist(distances()))
       hClusters <- lapply(possibleClusters, function(k) cutree(hTree, k = k))
       hSils <- vapply(hClusters, function(hCluster) {
         mean(cluster::silhouette(hCluster, distances())[, 3])
@@ -350,12 +350,10 @@ server <- function(input, output, session) {
       cn <- colnames(ret)
       metaOpts <- c("Fixed", "Cluster", cn)
       updateSelectInput(session, "ptCol",
-                        choices = setNames(metaOpts, metaOpts),
-                        selected = input$ptCol)
+                        choices = setNames(metaOpts, metaOpts))
       updateSelectInput(session, "pch",
                         choices = setNames(metaOpts, metaOpts))
     } else {
-      dput(ret)
       hide("ptCol")
       hide("pch")
     }
@@ -375,7 +373,6 @@ server <- function(input, output, session) {
                colby <- 1
              }, {
                colCategories <- as.factor(metadata()[names(cluster), input$ptCol])
-               dput(colCategories)
                pal <- hcl.colors(length(levels(colCategories)), "dark2", 0.9)
                colby <- pal[as.integer(colCategories)]
              }
