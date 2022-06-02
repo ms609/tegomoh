@@ -393,49 +393,32 @@ server <- function(input, output, session) {
     }
   }
 
-
   MapPlot <- function() {
     if (treeLoaded()) {
-      cluster <- clusters()$clust
-      metadata()
-      switch(input$ptCol,
-             "Cluster" = {
-               colby <- hcl.colors(max(cluster), "dark2")[cluster]
-             }, "Fixed" = {
-               colby <- 1
-             }, {
-               colCategories <- as.factor(metadata()[names(cluster), input$ptCol])
-               pal <- hcl.colors(length(levels(colCategories)), "dark2", 0.9)
-               colby <- pal[as.integer(colCategories)]
-             }
-      )
-      switch(input$pch,
-             "Cluster" = {
-               txtby <- cluster
-             }, "Fixed" = {
-               txtby <- ""
-             }, {
-               txtby <- metadata()[names(cluster), input$pch]
-             }
-      )
-
-
+      
       d <- distances()
       colnames(d) <- paste0("d", seq_len(ncol(d)) - 1)
+      
       m <- mapping()
       m <- m + min(m)
       m <- m / max(m)
       colnames(m) <- c("mappedX", "mappedY")
-      d3Data <- cbind(d, m, metadata())
-      dput(head(d3Data))
-      r2d3(d3Data,
-           script = "plot.js",
-           options = list(
-             col = colby,
-             txt = txtby))
+      
+      md <- metadata()
+      
+      cluster <- clusters()$clust
+      clusterCol <- hcl.colors(max(cluster), "dark2")[cluster]
+      
+      d3Data <- cbind(d, m,
+                      cluster = cluster,
+                      Cluster_col = clusterCol,
+                      md)
+      
+      r2d3(d3Data, script = "plot.js",
+           options = list(meta = rownames(md)),
+           container = "div")
     }
   }
-
 
   output$treePlot <- renderPlot(TreePlot())
   output$d3Plot <- renderD3(MapPlot())
