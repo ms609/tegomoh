@@ -1,32 +1,21 @@
 # Install and load required libraries
-if(!requireNamespace("TreeTools", quietly = TRUE)) {
-  install.packages("TreeTools")
+Require <- function (packages) {
+  for (pkg in packages) {
+    if(!requireNamespace(pkg, quietly = TRUE)) {
+      install.packages(pkg)
+    }
+    library(pkg, character.only = TRUE)
+  }
 }
-library("TreeTools")
+  
+Require(c("TreeTools", "TreeDist", "protoclust", "shiny", "r2d3"))
 
-if(!requireNamespace("TreeDist", quietly = TRUE)) {
-  install.packages("TreeDist")
-}
-
-if(!requireNamespace("protoclust", quietly = TRUE)) {
-  install.packages("protoclust")
-}
-library("protoclust")
-
-library("shiny")
 if (!requireNamespace("shinyjs", quietly = TRUE,
-                      exclude = c("colourInput", "updateColourInput",
-                                  "colourPicker", "runExample"))) {
+                      exclude = "runExample")) {
   install.packages("shinyjs")
-  install.packages("colourpicker") # Necessarily absent, as imports shinyjs
 }
-library("shinyjs", exclude = c("colourInput", "colourPicker",
-                               "updateColourInput", "runExample"))
+library("shinyjs", exclude = "runExample")
 
-if (!requireNamespace("colourpicker", quietly = TRUE)) {
-  install.packages("colourpicker")
-}
-library("colourpicker")
 
 ltyInput <- function (id, name, val, none = TRUE) {
   selectInput(id, paste(name, "line type"),
@@ -157,6 +146,7 @@ ui <- fluidPage(
     ),
     
     mainPanel(
+      fluidRow(d3Output(outputId = "d3Plot")),
       fluidRow(plotOutput(outputId = "mainPlot", width = "80%", height = "900px")),
       fluidRow(textOutput(outputId = "plotQual")),
       fluidRow(id = "saveButtons",
@@ -444,6 +434,9 @@ server <- function(input, output, session) {
   }
   
   output$mainPlot <- renderPlot(DoPlot())
+  output$d3Plot <- renderD3({
+    r2d3(runif(5, 0, 1), script = "plot.js")
+  })
   output$plotQual <- renderText({
     if (treeLoaded()) {
       paste0("Trustworthiness: ", signif(mapQual()[1], 3),
