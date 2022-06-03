@@ -191,7 +191,6 @@ server <- function(input, output, session) {
     }
 
     ret <- c(ret)
-    dput(ret)
     nTrees <- length(ret)
     if (nTrees > 1) {
       show("whichTree")
@@ -360,13 +359,17 @@ server <- function(input, output, session) {
       cluster <- clusters()$clust
       clusterCol <- hcl.colors(max(cluster), "dark2")[cluster]
       
+      md <- metadata()
+      
       mc <- metaCols()
       colnames(mc) <- paste0(colnames(mc), "_col")
+      
+      rownames(d) <- rownames(md)
       
       d3Data <- cbind(d, m,
                       cluster = cluster,
                       Cluster_col = clusterCol,
-                      metadata(),
+                      md,
                       mc
                       )
       

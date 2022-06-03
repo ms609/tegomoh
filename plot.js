@@ -1,4 +1,6 @@
-// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_status")), container = "div", viewer = "browser"
+// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md)), container = "div", viewer = "browser"
+
+//// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_status")), container = "div", viewer = "browser"
 
 div.selectAll('*').remove();
 
@@ -65,7 +67,8 @@ function ticked() {
             .style("overflow", "visible")
             .style("text-align", "center")
             .style("line-height", "0")
-            .text("agdsh")
+            .style("user-select", "none")
+            .text(function(d, i) {return i;})
             .on("mouseover", mouseOver)
             .on("mouseout", mouseOut)
           ;
@@ -93,7 +96,20 @@ function update() {
    .selectAll(".node-group")
    .data(data)
    .join("div")
-     .style("border-color", fill_col);
+     .style("border-color", fill_col)
+     .text(function(d, i) {
+       txt_opt = div.select("#txtSelect").property("value");
+       switch (txt_opt) {
+         case "None": return "";
+         case "Index": return i;
+         case "ID": return d["_row"];
+         default: {
+           console.log(d)
+           return d[txt_opt];
+         }
+       }
+     })
+    ;
 }
 
 var simulation = d3.forceSimulation(data)
@@ -112,18 +128,57 @@ var simulation = d3.forceSimulation(data)
     .strength(0.9)
   )
   .force("collision", d3.forceCollide().radius(radius))
-  .on("tick", ticked);
+  .on("tick", ticked)
+;
   
-  // simulation.find(x, y) returns nearest node
-  
+
+
+function dragSubject(e) {
+  xy = d3.pointer(e);
+  return simulation.find(xy[0], xy[1], 50);
+}
+
+function dragStarted(e) {
+  if (!e.active) {
+    simulation.alphaTarget(0.3).restart();
+  }
+  simulation.force("x", null).force("y", null).force("center", null);
+  e.subject.fx = e.x;
+  e.subject.fy = e.y;
+}  
+
+function dragged(e) {
+  e.subject.fx = e.x;
+  e.subject.fy = e.y;
+}
+
+function dragEnded(e) {
+  if (!e.active) {
+    simulation.alphaTarget(0);
+  }
+  e.subject.fx = null;
+  e.subject.fy = null;
+}
+
+div
+  .call(d3.drag()
+    .container(div)
+    .subject(dragSubject)
+    .on("start", dragStarted)
+    .on("drag", dragged)
+    .on("end", dragEnded)
+  )
+;
 
 var lblColSelect = div.append("label")
       .attr("for", "colSelect")
+      .style("float", "left")
       .text("Colour by:")
       
 var colSelect = div.append("select")
       .attr("name", "colSelect")
       .attr("id", "colSelect")
+      .style("float", "left")
       .on("change", update)
       ;
       
@@ -131,6 +186,26 @@ var colOptions = colSelect.selectAll("option")
       .data(["Cluster", "Fixed"].concat(options["meta"]))
       .enter()
       .append("option");
+
+colOptions.text(d => d).attr("value", d => d)
+      
+var lblTxtSelect = div.append("label")
+      .attr("for", "colSelect")
+      .style("float", "left")
+      .text("Label:")
+      
+var txtSelect = div.append("select")
+      .attr("name", "txtSelect")
+      .attr("id", "txtSelect")
+      .style("float", "left")
+      .on("change", update)
+      ;
+      
+var txtOptions = txtSelect.selectAll("option")
+      .data(["Index", "ID", "None"].concat(options["meta"]))
+      .enter()
+      .append("option");
+txtOptions.text(d => d).attr("value", d => d)
 
 function mouseX(e) {
   let elem = e.target.getBoundingClientRect();
@@ -150,7 +225,7 @@ function updateSpacing(e) {
       .strength(0.9)
     )
     .alpha(0.5)
-    .alphaTarget(0.3)
+    .alphaTarget(0)
     .restart();
 }
 
@@ -173,7 +248,7 @@ function updateRadius(e) {
     radius(radius)
     )
     .alpha(0.5)
-    .alphaTarget(0.3)
+    .alphaTarget(0)
     .restart()
   ;
 }
@@ -188,11 +263,12 @@ var setSpacing = div.append("div")
       .style("width", "200px")
       .style("height", "20px")
       .style("margin", "5px")
-      .style("user-select": "none")
-      .style("text-align": "center")
+      .style("user-select", "none")
+      .style("text-align", "center")
+      .style("float", "left")
+      .style("clear", "left")
       .text("Spacing")
       .on("click", updateSpacing)
-      .on("mousemove", function(e) {if (e.buttons) {updateSpacing(e);}})
       ;
       
 var setRadius = div.append("div")
@@ -201,10 +277,10 @@ var setRadius = div.append("div")
       .style("width", "200px")
       .style("height", "20px")
       .style("margin", "5px")
-      .style("user-select": "none")
+      .style("user-select", "none")
+      .style("text-align", "center")
+      .style("float", "left")
       .text("Radius")
       .on("click", updateRadius)
-      .on("mousemove", function(e) {if (e.buttons) {updateRadius(e);}})
       ;
 
-colOptions.text(d => d).attr("value", d => d)
