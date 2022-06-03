@@ -26,7 +26,7 @@ ltyInput <- function (id, name, val, none = TRUE) {
               val)
 }
 pchInput <- function (id, name, val) {
-  selectInput(id, name, 
+  selectInput(id, name,
               list(
                 "Data column 4" = 904,
                 "Data column 5" = 905,
@@ -69,7 +69,7 @@ fontInput <- function (id, name, val) {
 ui <- fluidPage(
   title = "Strain analysis", theme = "style.css",
   useShinyjs(),
-  
+
   sidebarLayout(
     sidebarPanel(
       # tabsetPanel(
@@ -83,29 +83,19 @@ ui <- fluidPage(
                  fileInput("metaFile", "Metadata", placeholder = "No metadata file selected",
                            accept = c('.csv', '.txt', '.xls', '.xlsx')),
                  textOutput(outputId = "dataStatus"),
-                 hidden(selectInput("ptCol", "Colour points by",
-                                    list("Cluster" = "Cluster",
-                                         "Fixed" = "Fixed"), "Cluster")),
-                 hidden(selectInput("pch", "Style points by",
-                                    list("Cluster" = "Cluster",
-                                         "Fixed" = "Fixed"), "Fixed")),
-                 sliderInput("ptCex", "Point size", 0.5, 9.5, 2.5),
-                 checkboxGroupInput("Display", "Display:", 
-                                    list("Cluster boundaries" = "hulls"),
-                                    c("hulls"))
         # ),
         # tabPanel("Plot display",
-        #          
-        #          
+        #
+        #
         #          colourInput('col', 'Background colour', '#ffffff'),
-        #          checkboxGroupInput('display', 'Display options', 
+        #          checkboxGroupInput('display', 'Display options',
         #                             list('Clockwise' = 'clockwise',
         #                                  'Isometric' = 'isometric',
         #                                  'Tip labels' = 'show.tip.labels',
         #                                  'Axis labels' = 'show.axis.labels',
         #                                  'Axis tick labels' = 'axis.labels',
         #                                  'Axis tick marks' = 'axis.tick',
-        #                                  'Rotate tick labels' = 'axis.rotate'), 
+        #                                  'Rotate tick labels' = 'axis.rotate'),
         #                             c('clockwise', 'isometric', 'axis.labels',
         #                               'show.axis.labels', 'axis.tick', 'axis.rotate')),
         #          lwdInput('axis.lwd', 'Axis', 1),
@@ -114,11 +104,11 @@ ui <- fluidPage(
         #          lwdInput('ticks.lwd', 'Axis ticks', 1),
         #          sliderInput('ticks.length', 'Axis tick length', 0, 0.1, 0.025),
         #          colourInput('ticks.col', 'Axis tick colour', "darkgrey"),
-        # 
+        #
         # ),
-        # 
+        #
         # tabPanel('Points',
-        #          selectInput('points.type', 'Plot type', 
+        #          selectInput('points.type', 'Plot type',
         #                      list('Points only' = 'p',
         #                           'Lines' = 'l',
         #                           'Connected points' = 'b',
@@ -144,10 +134,10 @@ ui <- fluidPage(
         # )
       # ),
     ),
-    
+
     mainPanel(
-      fluidRow(d3Output(outputId = "d3Plot")),
-      fluidRow(plotOutput(outputId = "mainPlot", width = "80%", height = "900px")),
+      fluidRow(d3Output(outputId = "d3Plot", height = "600px", width = "600px")),
+      fluidRow(plotOutput(outputId = "treePlot", height = "200px")),
       fluidRow(textOutput(outputId = "plotQual")),
       fluidRow(id = "saveButtons",
                tags$span("Save as: "),
@@ -176,9 +166,9 @@ ui <- fluidPage(
 
 
 server <- function(input, output, session) {
-  
+
   r <- reactiveValues()
-  
+
   treeFile <- reactive({
     fileInput <- input$treeFile
     if (is.null(input)) {
@@ -195,55 +185,55 @@ server <- function(input, output, session) {
       ret <- ReadTntTree(tmpFile)
       if (length(ret) == 0) ret <- read.tree(tmpFile)
     }
-    
+
     if (!inherits(ret, c("phylo", "multiPhylo"))) {
       return("Could not read trees from file")
     }
-    
+
     ret <- c(ret)
     nTrees <- length(ret)
-    if (nTrees) {
+    if (nTrees > 1) {
       show("whichTree")
       updateSliderInput(session, "whichTree", value = 1, max = nTrees)
     } else {
       hide("whichTree")
     }
-    
+
     ret
   })
-  
+
   treeLoaded <- reactive({
     !is.character(treeFile())
   })
-  
+
   tree <- reactive({
     treeFile()[[input$whichTree]]
   })
-  
+
   distances <- reactive({
     if (treeLoaded()) {
       cophenetic.phylo(tree())
     }
   })
-  
+
   mapping <- reactive({
     cmdscale(distances(), k = 2)
   })
-  
+
   mapQual <- reactive({
     TreeDist::MappingQuality(distances(), dist(mapping()))
   })
-  
+
   clusters <- reactive({
     if (treeLoaded()) {
       possibleClusters <- 2:20
-      
+
       pamClusters <- lapply(possibleClusters,
                             function(k) cluster::pam(distances(), k = k))
       pamSils <- vapply(pamClusters, function(pamCluster) {
         mean(cluster::silhouette(pamCluster)[, 3])
       }, double(1))
-      
+
       bestPam <- which.max(pamSils)
       pamSil <- pamSils[bestPam]
       pamCluster <- pamClusters[[bestPam]]$cluster
@@ -253,12 +243,12 @@ server <- function(input, output, session) {
       hSils <- vapply(hClusters, function(hCluster) {
         mean(cluster::silhouette(hCluster, distances())[, 3])
       }, double(1))
-      
-      
+
+
       bestH <- which.max(hSils)
       hSil <- hSils[bestH]
       hCluster <- hClusters[[bestH]]
-      
+
       if (hSil > pamSil) {
         list(clust = hCluster, sil = hSil)
       } else {
@@ -268,7 +258,7 @@ server <- function(input, output, session) {
       list(clust = NULL, sil = NULL)
     }
   })
-  
+
   metaPath <- reactive({
     fileInput <- input$metaFile
     exampleFile <- ""
@@ -301,16 +291,16 @@ server <- function(input, output, session) {
         output$dataStatus <- renderText({paste0("Loaded data from ", fileInput$name)})
       }
     }
-    
+
     # Return:
     candidate
   })
-  
+
   metaExt <- reactive({
     fp <- metaPath()
     if (nchar(fp) < 2) "<none>" else substr(fp, nchar(fp) - 3, nchar(fp))
   })
-  
+
   ReadExcel <- function(path) {
     if(!requireNamespace("readxl", quietly = TRUE)) {
       install.packages("readxl")
@@ -319,7 +309,7 @@ server <- function(input, output, session) {
     rownames(x) <- x[, 1]
     x[, -1]
   }
-  
+
   metadata <- reactive({
     fp <- metaPath()
     ret <- switch(metaExt(),
@@ -333,110 +323,63 @@ server <- function(input, output, session) {
                     matrix(0, 0, 3)
                   }
     )
-    
-    if (!is.null(dim(ret))) {
-      show("ptCol")
-      show("pch")
-      cn <- colnames(ret)
-      metaOpts <- c("Fixed", "Cluster", cn)
-      updateSelectInput(session, "ptCol",
-                        choices = setNames(metaOpts, metaOpts))
-      updateSelectInput(session, "pch",
-                        choices = setNames(metaOpts, metaOpts))
-    } else {
-      hide("ptCol")
-      hide("pch")
-    }
-    
+
     ret
   })
   
-  DoPlot <- function() {
+  metaCols <- reactive({
+    vapply(metadata(), function (x) {
+      fac <- as.factor(x)
+      nLevel <- length(levels(fac))
+      hcl.colors(nLevel, "dark2")[fac]
+    }, character(nrow(metadata())))
+  })
+
+  TreePlot <- function() {
     if (treeLoaded()) {
-      
       cluster <- clusters()$clust
-      metadata()
-      switch(input$ptCol,
-             "Cluster" = {
-               colby <- hcl.colors(max(cluster), "dark2")[cluster]
-             }, "Fixed" = {
-               colby <- 1
-             }, {
-               colCategories <- as.factor(metadata()[names(cluster), input$ptCol])
-               pal <- hcl.colors(length(levels(colCategories)), "dark2", 0.9)
-               colby <- pal[as.integer(colCategories)]
-             }
-      )
-      switch(input$pch,
-             "Cluster" = {
-               pchby <- cluster
-             }, "Fixed" = {
-               pchby <- 16 # filled circle
-             }, {
-               pchCategories <- as.factor(metadata()[names(cluster), input$pch])
-               pchby <- as.integer(pchCategories)
-             }
-      )
+      colby <- hcl.colors(max(cluster), "dark2")[cluster]
       
-      layout(matrix(c(1, 1, 2, 3), 2, 2), widths = c(1, 2), heights = c(2, 1))
-      par(mar = rep(0.1, 4))
+      par(mar = rep(0, 4))
       plot(tree(), tip.color = colby, cex = 0.7)
-      plot(mapping(), asp = 1, frame.plot = FALSE, axes = FALSE,
-           xlab = "", ylab = "", cex = input$ptCex,
-           col = colby, pch = pchby)
-      
-      # Hulls
-      if ("hulls" %in% input$display) {
-        for (clI in unique(cluster)) {
-          inCluster <- cluster == clI
-          clusterX <- mapping()[inCluster, 1]
-          clusterY <- mapping()[inCluster, 2]
-          hull <- chull(clusterX, clusterY)
-          grown <- Ternary::GrowPolygon(clusterX[hull], clusterY[hull], 0.3)
-          polygon(grown, lty = 1, lwd = 2, border = clI)
-          text(mean(clusterX), mean(clusterY), clI, col = clI, font = 2, pos = 1)
-        }
-      }
-      
-      # Scale bar
-      corners <- par("usr")
-      nSNP <- 5L
-      text(corners[2] - 1 - (nSNP / 2), corners[3] + 1,
-           paste0("~", nSNP, " SNP"), pos = 3, xpd = NA)
-      lines(c(corners[2] - 1, corners[2] - 1 - nSNP),
-            rep(corners[3], 2) + 1, lwd = 2, xpd = NA)
-      
-      
-      plot.new()
-      if (!input$ptCol %in% c("Fixed", "Cluster")) {
-        legend("right", pch = 15, col = pal, levels(colCategories),
-               bty = "n", cex = 2)
-      }
-      if (!input$pch %in% c("Fixed", "Cluster")) {
-        legend("left", col = 1, cex = 2, bty = "n",
-               pch = seq_along(levels(pchCategories)),
-               levels(pchCategories))
-      }
-      
-      # poEdge <- Postorder(tree())$edge
-      # parent <- poEdge[, 1]
-      # child <- poEdge[, 2]
-      # xy <- matrix(0, parent[1], 2)
-      # xy[seq_len(NTip(tree())), ] <- mapping()
-      # for (node in unique(parent)) {
-      #   xy[node, ] <- colMeans(xy[child[parent == node], , drop = FALSE])
-      # }
-      # segments(xy[parent, 1], xy[parent, 2],
-      #          xy[child, 1], xy[child, 2],
-      #          col = "#00000033")
-      # points(xy[parent, 1], xy[parent, 2], pch = ".", col = "#00000099")
     }
   }
-  
-  output$mainPlot <- renderPlot(DoPlot())
-  output$d3Plot <- renderD3({
-    r2d3(runif(5, 0, 1), script = "plot.js")
-  })
+
+  MapPlot <- function() {
+    if (treeLoaded()) {
+      
+      d <- distances()
+      colnames(d) <- paste0("d", seq_len(ncol(d)) - 1)
+      
+      m <- mapping()
+      m <- m + min(m)
+      m <- m / max(m)
+      colnames(m) <- c("mappedX", "mappedY")
+      
+      cluster <- clusters()$clust
+      clusterCol <- hcl.colors(max(cluster), "dark2")[cluster]
+      
+      
+      
+      mc <- metaCols()
+      colnames(mc) <- paste0(colnames(mc), "_col")
+      
+      d3Data <- cbind(d, m,
+                      cluster = cluster,
+                      Cluster_col = clusterCol,
+                      metadata(),
+                      mc,
+                      "_row" = rownames(md)
+                      )
+      
+      r2d3(d3Data, script = "plot.js",
+           options = list(meta = colnames(md)),
+           container = "div")
+    }
+  }
+
+  output$treePlot <- renderPlot(TreePlot())
+  output$d3Plot <- renderD3(MapPlot())
   output$plotQual <- renderText({
     if (treeLoaded()) {
       paste0("Trustworthiness: ", signif(mapQual()[1], 3),
@@ -446,8 +389,7 @@ server <- function(input, output, session) {
       "No tree.  Load a tree using the \"Load data\" dialogue panel."
     }
   })
-  
+
 }
 
 shinyApp(ui = ui, server = server)
-
