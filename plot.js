@@ -1,4 +1,11 @@
-// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_Status")), container = "div", viewer = "browser"
+// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_status")), container = "div", viewer = "browser"
+
+div.selectAll('*').remove();
+
+var linkMult = 10;
+var linkMax = 200;
+var radMult = 8;
+var radMax = 200;
 
 var links = function() {
       var ret = [];
@@ -11,7 +18,7 @@ var links = function() {
     }
     
 function radius (d) {
-  return typeof(d.radius) === "undefined" ? 8 : d.radius;
+  return radMult * (typeof(d.radius) === "undefined" ? 1 : d.radius);
 }
 
 function fill_col(d) {
@@ -59,14 +66,6 @@ function ticked() {
             .style("text-align", "center")
             .style("line-height", "0")
             .text("agdsh")
-            ;
-        
-        node.append("circle")
-            .attr("id", function (d, i) {return "circle_" + i;})
-            .attr("r", radius)
-            .attr("cx", 0)
-            .attr("cy", 0)
-            .attr("fill", fill_col)
             .on("mouseover", mouseOver)
             .on("mouseout", mouseOut)
           ;
@@ -91,10 +90,10 @@ function ticked() {
 
 function update() {
   var u = div
-   .selectAll("circle")
+   .selectAll(".node-group")
    .data(data)
-   .join("circle")
-   .attr("fill", fill_col);
+   .join("div")
+     .style("border-color", fill_col);
 }
 
 var simulation = d3.forceSimulation(data)
@@ -109,15 +108,15 @@ var simulation = d3.forceSimulation(data)
   .force("link", d3
     .forceLink()
     .links(links())
-    .distance(function(link) {return link.distance * 10;})
+    .distance(function(link) {return link.distance * linkMult;})
     .strength(0.9)
   )
-  .force("collision", d3.forceCollide().radius(radius).strength(1))
+  .force("collision", d3.forceCollide().radius(radius))
   .on("tick", ticked);
   
   // simulation.find(x, y) returns nearest node
   
-  
+
 var lblColSelect = div.append("label")
       .attr("for", "colSelect")
       .text("Colour by:")
@@ -127,11 +126,85 @@ var colSelect = div.append("select")
       .attr("id", "colSelect")
       .on("change", update)
       ;
-
       
 var colOptions = colSelect.selectAll("option")
       .data(["Cluster", "Fixed"].concat(options["meta"]))
       .enter()
       .append("option");
+
+function mouseX(e) {
+  let elem = e.target.getBoundingClientRect();
+  return (e.clientX - elem.left) / elem.width;
+}
+
+function updateSpacing(e) {
+  linkMult = 50 * mouseX(e);
+  
+  div.select("#setSpacing")
+      .style("background-image", sliderGradient(e.offsetX))
+  
+  simulation.force("link", d3
+      .forceLink()
+      .links(links())
+      .distance(function(link) {return link.distance * linkMult;})
+      .strength(0.9)
+    )
+    .alpha(0.5)
+    .alphaTarget(0.3)
+    .restart();
+}
+
+function updateRadius(e) {
+  radMult = 25 * mouseX(e);
+  
+  div.select("#setRadius")
+      .style("background-image", sliderGradient(e.offsetX))
+      
+  div.selectAll(".node-group")
+    .data(data)
+    .style("border-width", function(d, i) {
+      return radius(d, i) + "px";
+    })
+  ;
+          
+  
+  simulation.force("collision", d3.
+    forceCollide().
+    radius(radius)
+    )
+    .alpha(0.5)
+    .alphaTarget(0.3)
+    .restart()
+  ;
+}
+
+function sliderGradient(px) {
+  return "linear-gradient(90deg, steelblue, transparent " + px + "px, steelblue)";
+}
+
+var setSpacing = div.append("div")
+      .attr("id", "setSpacing")
+      .style("background-image", sliderGradient(100))
+      .style("width", "200px")
+      .style("height", "20px")
+      .style("margin", "5px")
+      .style("user-select": "none")
+      .style("text-align": "center")
+      .text("Spacing")
+      .on("click", updateSpacing)
+      .on("mousemove", function(e) {if (e.buttons) {updateSpacing(e);}})
+      ;
+      
+var setRadius = div.append("div")
+      .attr("id", "setRadius")
+      .style("background-image", sliderGradient(100))
+      .style("width", "200px")
+      .style("height", "20px")
+      .style("margin", "5px")
+      .style("user-select": "none")
+      .text("Radius")
+      .on("click", updateRadius)
+      .on("mousemove", function(e) {if (e.buttons) {updateRadius(e);}})
+      ;
 
 colOptions.text(d => d).attr("value", d => d)

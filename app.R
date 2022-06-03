@@ -83,16 +83,6 @@ ui <- fluidPage(
                  fileInput("metaFile", "Metadata", placeholder = "No metadata file selected",
                            accept = c('.csv', '.txt', '.xls', '.xlsx')),
                  textOutput(outputId = "dataStatus"),
-                 hidden(selectInput("ptCol", "Colour points by",
-                                    list("Cluster" = "Cluster",
-                                         "Fixed" = "Fixed"), "Cluster")),
-                 hidden(selectInput("pch", "Style points by",
-                                    list("Cluster" = "Cluster",
-                                         "Fixed" = "Fixed"), "Fixed")),
-                 sliderInput("ptCex", "Point size", 0.5, 9.5, 2.5),
-                 checkboxGroupInput("Display", "Display:",
-                                    list("Cluster boundaries" = "hulls"),
-                                    c("hulls"))
         # ),
         # tabPanel("Plot display",
         #
@@ -146,7 +136,7 @@ ui <- fluidPage(
     ),
 
     mainPanel(
-      fluidRow(d3Output(outputId = "d3Plot")),
+      fluidRow(d3Output(outputId = "d3Plot", height = "700px", width = "700px")),
       fluidRow(plotOutput(outputId = "treePlot", height = "200px")),
       fluidRow(textOutput(outputId = "plotQual")),
       fluidRow(id = "saveButtons",
@@ -334,61 +324,24 @@ server <- function(input, output, session) {
                     matrix(0, 0, 3)
                   }
     )
-    if (!is.null(dim(ret))) {
-      show("ptCol")
-      show("pch")
-      cn <- colnames(ret)
-      metaOpts <- c("Fixed", "Cluster", cn)
-      updateSelectInput(session, "ptCol",
-                        choices = setNames(metaOpts, metaOpts))
-      updateSelectInput(session, "pch",
-                        choices = setNames(metaOpts, metaOpts))
-    } else {
-      hide("ptCol")
-      hide("pch")
-    }
 
     ret
+  })
+  
+  metaCols <- reactive({
+    vapply(metadata(), function (x) {
+      fac <- as.factor(x)
+      nLevel <- length(levels(fac))
+      hcl.colors(nLevel, "dark2")[fac]
+    }, character(nrow(metadata())))
   })
 
   TreePlot <- function() {
     if (treeLoaded()) {
-
       cluster <- clusters()$clust
-      metadata()
-      switch(input$ptCol,
-             "Cluster" = {
-               colby <- hcl.colors(max(cluster), "dark2")[cluster]
-             }, "Fixed" = {
-               colby <- 1
-             }, {
-               colCategories <- as.factor(metadata()[names(cluster), input$ptCol])
-               pal <- hcl.colors(length(levels(colCategories)), "dark2", 0.9)
-               colby <- pal[as.integer(colCategories)]
-             }
-      )
-      switch(input$pch,
-             "Cluster" = {
-               pchby <- cluster
-             }, "Fixed" = {
-               pchby <- 16 # filled circle
-             }, {
-               pchCategories <- as.factor(metadata()[names(cluster), input$pch])
-               pchby <- as.integer(pchCategories)
-             }
-      )
-      layout(matrix(1:2, 1), widths = c(1, 3))
+      colby <- hcl.colors(max(cluster), "dark2")[cluster]
+      
       par(mar = rep(0, 4))
-      plot.new()
-      if (!input$ptCol %in% c("Fixed", "Cluster")) {
-        legend("top", pch = 15, col = pal, levels(colCategories),
-               bty = "n", pt.cex = 2)
-      }
-      if (!input$pch %in% c("Fixed", "Cluster")) {
-        legend("bottom", col = 1, pt.cex = 2, bty = "n",
-               pch = seq_along(levels(pchCategories)),
-               levels(pchCategories))
-      }
       plot(tree(), tip.color = colby, cex = 0.7)
     }
   }
@@ -404,18 +357,21 @@ server <- function(input, output, session) {
       m <- m / max(m)
       colnames(m) <- c("mappedX", "mappedY")
       
-      md <- metadata()
-      
       cluster <- clusters()$clust
       clusterCol <- hcl.colors(max(cluster), "dark2")[cluster]
+      
+      mc <- metaCols()
+      colnames(mc) <- paste0(colnames(mc), "_col")
       
       d3Data <- cbind(d, m,
                       cluster = cluster,
                       Cluster_col = clusterCol,
-                      md)
+                      metadata(),
+                      mc
+                      )
       
       r2d3(d3Data, script = "plot.js",
-           options = list(meta = rownames(md)),
+           options = list(meta = colnames(md)),
            container = "div")
     }
   }
