@@ -359,18 +359,17 @@ server <- function(input, output, session) {
       cluster <- clusters()$clust
       clusterCol <- hcl.colors(max(cluster), "dark2")[cluster]
       
-      md <- metadata()
+      
       
       mc <- metaCols()
       colnames(mc) <- paste0(colnames(mc), "_col")
       
-      rownames(d) <- rownames(md)
-      
       d3Data <- cbind(d, m,
                       cluster = cluster,
                       Cluster_col = clusterCol,
-                      md,
-                      mc
+                      metadata(),
+                      mc,
+                      "_row" = rownames(md)
                       )
       
       r2d3(d3Data, script = "plot.js",

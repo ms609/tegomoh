@@ -61,5 +61,6 @@ d3Data <- cbind(d, m,
                 cluster = cluster,
                 Cluster_col = clusterCol,
                 md,
-                mc
+                mc,
+                "_row" = rownames(d)
 )

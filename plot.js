@@ -4,10 +4,13 @@
 
 div.selectAll('*').remove();
 
-var linkMult = 10;
-var linkMax = 200;
-var radMult = 8;
-var radMax = 200;
+const linkMax = 200;
+const linkMod = 42 / linkMax;
+var linkMult = linkMod * linkMax / 2;
+const radMax = 200;
+const radMod = 25 / radMax;
+var radMult = radMod * radMax / 2;
+
 
 var links = function() {
       var ret = [];
@@ -25,7 +28,7 @@ function radius (d) {
 
 function fill_col(d) {
   fill_opt = div.select("#colSelect").property("value");
-  return fill_opt == "Fixed" ? "steelblue" : d[fill_opt + "_col"];
+  return fill_opt == "Uniform" ? "steelblue" : d[fill_opt + "_col"];
 }
 
 const fade = d3.transition()
@@ -68,6 +71,7 @@ function ticked() {
             .style("text-align", "center")
             .style("line-height", "0")
             .style("user-select", "none")
+            .style("white-space", "nowrap")
             .text(function(d, i) {return i;})
             .on("mouseover", mouseOver)
             .on("mouseout", mouseOut)
@@ -104,12 +108,50 @@ function update() {
          case "Index": return i;
          case "ID": return d["_row"];
          default: {
-           console.log(d)
            return d[txt_opt];
          }
        }
      })
-    ;
+  ;
+  
+  
+  let fill_opt = div.select("#colSelect").property("value");
+  let values = [];
+  if (fill_opt != "Cluster" && fill_opt != "Uniform") {
+    data.forEach(function(dat) {
+      d_opt = dat[fill_opt];
+      if (!values.find(el => el.val == d_opt)) {
+        values.push({"val": d_opt, "col": dat[fill_opt + "_col"]});
+      }
+    })
+  }
+  
+  var legend = div
+    .selectAll(".legend-entry")
+    .data(values)
+    .join(enter => {
+      var entry = enter
+          .append("div")
+          .attr("class", "legend-entry")
+          .style("float", "right")
+          .style("clear", "right")
+          .style("border-right-style", "solid")
+          .style("height", "1.1em")
+          .style("line-height", "1.1em")
+          .style("border-color", function(d) {
+            return d.col;
+          })
+          .style("border-width", "10px")
+          .style("margin", "5px")
+          .style("padding-right", "5px")
+          .style("overflow", "visible")
+          .style("text-align", "left")
+          .text(function(d, i) {return d.val;})
+        ;
+    })
+    .style("left", function(d) {return d.x + "px";})
+    .style("top", function(d) {return d.y + "px";});
+    
 }
 
 var simulation = d3.forceSimulation(data)
@@ -183,7 +225,7 @@ var colSelect = div.append("select")
       ;
       
 var colOptions = colSelect.selectAll("option")
-      .data(["Cluster", "Fixed"].concat(options["meta"]))
+      .data(["Cluster", "Uniform"].concat(options["meta"]))
       .enter()
       .append("option");
 
@@ -212,45 +254,70 @@ function mouseX(e) {
   return (e.clientX - elem.left) / elem.width;
 }
 
+var updatingSpacing = 0;
 function updateSpacing(e) {
-  linkMult = 50 * mouseX(e);
-  
-  div.select("#setSpacing")
-      .style("background-image", sliderGradient(e.offsetX))
-  
-  simulation.force("link", d3
-      .forceLink()
-      .links(links())
-      .distance(function(link) {return link.distance * linkMult;})
-      .strength(0.9)
-    )
-    .alpha(0.5)
-    .alphaTarget(0)
-    .restart();
+  if (updatingSpacing) {
+    x = e.offsetX;
+    linkMult = linkMod * x;
+    
+    div.select("#setSpacing")
+        .style("background-image", sliderGradient(x))
+    
+    simulation.force("link", d3
+        .forceLink()
+        .links(links())
+        .distance(function(link) {return link.distance * linkMult;})
+        .strength(0.9)
+      )
+      .alpha(0.5)
+      .alphaTarget(0)
+      .restart();
+  }
 }
 
+function spacingStart(e) {
+  updatingSpacing = 1;
+  updateSpacing(e)
+}
+
+function spacingEnd(e) {
+  updatingSpacing = 0;
+  simulation.alphaTarget(0).restart();
+}
+
+
+var updatingRadius = 0;
 function updateRadius(e) {
-  radMult = 25 * mouseX(e);
-  
-  div.select("#setRadius")
-      .style("background-image", sliderGradient(e.offsetX))
-      
-  div.selectAll(".node-group")
-    .data(data)
-    .style("border-width", function(d, i) {
-      return radius(d, i) + "px";
-    })
-  ;
-          
-  
-  simulation.force("collision", d3.
-    forceCollide().
-    radius(radius)
-    )
-    .alpha(0.5)
-    .alphaTarget(0)
-    .restart()
-  ;
+  if (updatingRadius) {
+    x = e.offsetX
+    radMult = radMod * x;
+    
+    div.select("#setRadius")
+        .style("background-image", sliderGradient(x))
+        
+    div.selectAll(".node-group")
+      .data(data)
+      .style("border-width", function(d, i) {
+        return radius(d, i) + "px";
+      })
+    ;
+    
+    simulation.force("collision", d3.forceCollide().radius(radius))
+      .alpha(0.5)
+      .alphaTarget(0.3)
+      .restart()
+    ;
+  }
+}
+
+function radiusStart(e) {
+  updatingRadius = 1;
+  updateRadius(e)
+}
+
+function radiusEnd(e) {
+  updatingRadius = 0;
+  simulation.alphaTarget(0).restart();
 }
 
 function sliderGradient(px) {
@@ -268,7 +335,10 @@ var setSpacing = div.append("div")
       .style("float", "left")
       .style("clear", "left")
       .text("Spacing")
-      .on("click", updateSpacing)
+      .on("mousedown", spacingStart)
+      .on("mouseout", spacingEnd)
+      .on("mouseup", spacingEnd)
+      .on("mousemove", updateSpacing)
       ;
       
 var setRadius = div.append("div")
@@ -281,6 +351,8 @@ var setRadius = div.append("div")
       .style("text-align", "center")
       .style("float", "left")
       .text("Radius")
-      .on("click", updateRadius)
+      .on("mousedown", radiusStart)
+      .on("mouseout", radiusEnd)
+      .on("mouseup", radiusEnd)
+      .on("mousemove", updateRadius)
       ;
-
