@@ -136,7 +136,7 @@ ui <- fluidPage(
     ),
 
     mainPanel(
-      fluidRow(d3Output(outputId = "d3Plot", height = "700px", width = "700px")),
+      fluidRow(d3Output(outputId = "d3Plot", height = "600px", width = "600px")),
       fluidRow(plotOutput(outputId = "treePlot", height = "200px")),
       fluidRow(textOutput(outputId = "plotQual")),
       fluidRow(id = "saveButtons",

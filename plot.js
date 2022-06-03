@@ -72,7 +72,7 @@ function ticked() {
             .style("line-height", "0")
             .style("user-select", "none")
             .style("white-space", "nowrap")
-            .text(function(d, i) {return i;})
+            .text(function(d, i) {return "";})
             .on("mouseover", mouseOver)
             .on("mouseout", mouseOut)
           ;
@@ -244,7 +244,7 @@ var txtSelect = div.append("select")
       ;
       
 var txtOptions = txtSelect.selectAll("option")
-      .data(["Index", "ID", "None"].concat(options["meta"]))
+      .data([ "None", "ID", "Index"].concat(options["meta"]))
       .enter()
       .append("option");
 txtOptions.text(d => d).attr("value", d => d)
