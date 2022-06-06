@@ -360,7 +360,7 @@ server <- function(input, output, session) {
       clusterCol <- hcl.colors(max(cluster), "dark2")[cluster]
       
       
-      
+      md <- metadata()
       mc <- metaCols()
       colnames(mc) <- paste0(colnames(mc), "_col")
       
