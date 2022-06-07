@@ -1,4 +1,4 @@
-// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md)), container = "div", viewer = "browser"
+// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md), contacts = contacts), container = "div", viewer = "browser"
 
 //// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_status")), container = "div", viewer = "browser"
 
@@ -53,7 +53,7 @@ function fill_col(d) {
 
 
 var some_icons = [
-  "circle", "square", "star", "play", "diamond", "asterisk", "circle-dot", "square-plus", "circle-half-stroke","bahai", "circle-notch", "circle-stop", "sun",
+  "circle", "square", "star", "play", "diamond", "asterisk", "circle-dot", "square-plus", "circle-half-stroke", "bahai", "circle-notch", "circle-stop", "sun",
   "circle-pause", "hat-cowboy", "instalod", "at", "bacterium", "bacon",
   "bell", "anchor", "chess-pawn", "chess-knight",  "chess-bishop", "chess-rook", "chess-queen", "chess-king"
 ];
