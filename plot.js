@@ -2,7 +2,27 @@
 
 //// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_status")), container = "div", viewer = "browser"
 
-div.selectAll('*').remove();
+// Load in document for font references
+var cssId = "fa6-css";
+if (!document.getElementById(cssId)) {
+    var head  = document.getElementsByTagName("head")[0];
+    var link  = document.createElement("link");
+    link.id   = cssId;
+    link.rel  = "stylesheet";
+    link.type = "text/css";
+    link.href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"; //https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.11/webfonts/fa-solid-900.woff2
+    link.media = "all";
+    head.appendChild(link);
+}
+
+
+div.selectAll("*").remove();
+
+// Load css again to apply to shadow root
+var faCss = div.append("link")
+  .attr("rel", "stylesheet")
+  .attr("type", "text/css")
+  .attr("href", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css");
 
 const linkMax = 200;
 const linkMod = 42 / linkMax;
@@ -59,11 +79,6 @@ function ticked() {
             .append("div")
             .attr("class", "node-group")
             .style("position", "absolute")
-            .style("border-style", "solid")
-            .style("border-color", fill_col)
-            .style("border-width", function(d, i) {
-              return radius(d, i) + "px";
-            })
             .style("width", "0px")
             .style("height", "0px")
             .style("border-radius", "1000px")
@@ -77,14 +92,15 @@ function ticked() {
             .on("mouseout", mouseOut)
           ;
           
-        node.append("text")
-            .text("")
-            .attr("font-family", "\"Gill Sans\", \"Gill Sans MT\", Arial")
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "central")
+        node.append("i")
+            .attr("class", "fa fas fa-solid fa-circle")
+            .style("color", fill_col)
+            .style("font-size", function(d, i) {
+              return (2 * radius(d, i)) + "px";
+            })
           ;
             
-        node.append("text")
+        node.append("span")
             .text("Tooltip text.")
             .style("visibility", "hidden")
             .attr("font-family", "\"Gill Sans\", \"Gill Sans MT\", Arial")
@@ -232,7 +248,7 @@ var colOptions = colSelect.selectAll("option")
 colOptions.text(d => d).attr("value", d => d)
       
 var lblTxtSelect = div.append("label")
-      .attr("for", "colSelect")
+      .attr("for", "txtSelect")
       .style("float", "left")
       .text("Label:")
       
