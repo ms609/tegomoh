@@ -58,6 +58,8 @@ colnames(mc) <- paste0(colnames(mc), "_col")
 rownames(d) <- rownames(md)
 
 contacts <- read.csv("Testing_Nextstrain_Epicontacts.csv")
+fromI <- match(contacts[, 1], rownames(d))
+toI <- match(contacts[, 2], rownames(d))
 
 d3Data <- cbind(d, m,
                 cluster = cluster,

@@ -90,19 +90,25 @@ ui <- fluidPage(
     ),
 
     mainPanel(
-      fluidRow(d3Output(outputId = "d3Plot", height = "600px", width = "600px")),
-      fluidRow(plotOutput(outputId = "treePlot", height = "200px")),
-      fluidRow(textOutput(outputId = "plotQual")),
-      fluidRow(id = "saveButtons",
-               tags$span("Save as: "),
-              downloadButton('saveR', 'R script'),
-              downloadButton('savePdf', 'PDF'),
-              downloadButton('savePng', 'PNG'),
-              tags$span("PNG size: ", id = 'pngSizeLabel'),
-              numericInput('pngSize', NULL, 800, 100,
-                           width = "70px", step = 10),
-              tags$span("pixels"),
+      fluidRow(
+        column(3,
+               plotOutput(outputId = "treePlot", height = "600px")
+        ),
+        column(9,
+               d3Output(outputId = "d3Plot", height = "600px", width = "600px")
+        ),
       ),
+      fluidRow(textOutput(outputId = "plotQual")),
+      # fluidRow(id = "saveButtons",
+      #          tags$span("Save as: "),
+      #         downloadButton('saveR', 'R script'),
+      #         downloadButton('savePdf', 'PDF'),
+      #         downloadButton('savePng', 'PNG'),
+      #         tags$span("PNG size: ", id = 'pngSizeLabel'),
+      #         numericInput('pngSize', NULL, 800, 100,
+      #                      width = "70px", step = 10),
+      #         tags$span("pixels"),
+      # ),
 
       # withTags(
       #   div(id = "caption",
@@ -299,10 +305,10 @@ server <- function(input, output, session) {
     x[, -1]
   }
   
-  ReadTabular <- function(fp) {
+  ReadTabular <- function(fp, ...) {
     ret <- switch(Extension(fp),
-                  ".csv" = read.csv(fp, row.names = 1),
-                  ".txt" = read.table(fp, row.names = 1),
+                  ".csv" = read.csv(fp, ...),
+                  ".txt" = read.table(fp, ...),
                   ".xls" = ReadExcel(fp),
                   "xlsx" = ReadExcel(fp),
                   {
@@ -316,7 +322,7 @@ server <- function(input, output, session) {
   }
 
   metadata <- reactive({
-    ReadTabular(metaPath())
+    ReadTabular(metaPath(), row.names = 1)
   })
   
   contacts <- reactive({
@@ -368,10 +374,20 @@ server <- function(input, output, session) {
                       "_row" = rownames(md)
                       )
       
+      
+      if (length(contacts())) {
+        fromI <- match(contacts()[, 1], tree()$tip.label)
+        toI <- match(contacts()[, 2], tree()$tip.label)
+      } else {
+        fromI <- integer(0)
+        toI <- integer(0)
+      }
+      
       r2d3(d3Data, script = "plot.js",
            options = list(
              meta = colnames(md),
-             contacts = contacts()[, 1:2]
+             from = fromI,
+             to = toI
            ),
            container = "div")
     }

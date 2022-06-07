@@ -1,4 +1,4 @@
-// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md), contacts = contacts), container = "div", viewer = "browser"
+// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md), contacts = contacts, from = fromI, to = toI), container = "div", viewer = "browser"
 
 //// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_status")), container = "div", viewer = "browser"
 
@@ -15,6 +15,10 @@ if (!document.getElementById(cssId)) {
     head.appendChild(link);
 }
 
+var to_i = [];
+for (const value of Object.values(options["to"])) {
+  to_i.push(typeof(value) === "number" ? value : -1);
+}
 
 div.selectAll("*").remove();
 
@@ -113,7 +117,70 @@ function mouseOut(d, i) {
     .style("visibility", "hidden");
 }
 
+function findDatum(prop, val) {
+  return data.filter(obj => {return obj[prop] === val;})[0]
+}
+
+function getAttr(attr, i) {
+  datum = findDatum("index", i)
+  if (typeof(datum) === "object") {
+    return datum[attr];
+  }
+}
+
+function y01(d, i) {
+  y0 = getAttr("y", d);
+  y1 = getAttr("y", to_i[i]);
+  return (y0 < y1) ? [y0, y1, 0] : [y1, y0, 1];
+}
+
+function x01(d, i) {
+  x0 = getAttr("x", d);
+  x1 = getAttr("x", to_i[i]);
+  return (x0 < x1) ? [x0, x1, 0] : [x1, x0, 1];
+}
+
 function ticked() {
+  
+  var lines = div
+      .selectAll(".node-link")
+      .data(options["from"])
+      .join(enter => {
+        var edge = enter
+          .append("div")
+          .attr("class", "node-link")
+          .text(function(d, i) {return `${d}_${to_i[i]}`;})
+          .style("position", "absolute")
+          .style("font-family", "monospace")
+          .style("color", "#00000033")
+        ;
+      })
+      .style("top", function(d, i) {
+        return y01(d, i)[0] + radius(d, i) + "px";
+      })
+      .style("left", function(d, i) {
+        return x01(d, i)[0] + radius(d, i) + "px";
+      })
+      .style("height", function(d, i) {
+        return y01(d, i)[1] - y01(d, i)[0] + "px";
+      })
+      .style("width", function(d, i) {
+        return x01(d, i)[1] - x01(d, i)[0] + "px";
+      })
+      .style("background", function(d, i) {
+        return "linear-gradient(to " 
+          + (y01(d, i)[2] ? "bottom" : "top") + " "
+          + (x01(d, i)[2] ? "left" : "right")
+          + ", #fff0 calc(50% - 1px), #0008, #fff0 calc(50% + 1px))";
+      })
+      .style("text-align", function(d, i) {
+        return x01(d, i)[2] ? "left" : "right";
+      })
+      .style("line-height", function(d, i) {
+        return y01(d, i)[2] ? "0px" : 2 * (y01(d, i)[1] - y01(d, i)[0]) + "px";
+      })
+    ;
+        
   var u = div
       .selectAll(".node-group")
       .data(data)
@@ -130,7 +197,6 @@ function ticked() {
             .style("line-height", "0")
             .style("user-select", "none")
             .style("white-space", "nowrap")
-            .text(function(d, i) {return "";})
             .on("mouseover", mouseOver)
             .on("mouseout", mouseOut)
           ;
