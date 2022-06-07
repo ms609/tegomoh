@@ -64,6 +64,18 @@ function icon_name(str) {
   switch(str.toLowerCase()) {
     case "male": return "person";
     case "female": return "person-dress";
+    
+    case "vaccinated": return "syringe";
+    case "unvaccinated": return "virus";
+    
+    case "household": return "house-chimney";
+    case "church": return "cross";
+    case "school": return "graduation-cap";
+    
+    case "hospital": 
+    case "house":
+      return str.toLowerCase();
+    
     default: 
       if (typeof(chosen_icons[str]) === "undefined") {
         chosen_icons[str] = some_icons[next_icon];
@@ -170,8 +182,9 @@ function update() {
   ;
   
   
-  let fill_opt = div.select("#colSelect").property("value");
+  div.selectAll(".col-legend-entry").remove();
   let colValues = [];
+  let fill_opt = div.select("#colSelect").property("value");
   if (fill_opt != "Cluster" && fill_opt != "Uniform") {
     data.forEach(function(dat) {
       d_opt = dat[fill_opt];
@@ -179,70 +192,70 @@ function update() {
         colValues.push({"val": d_opt, "col": dat[fill_opt + "_col"]});
       }
     })
+    
+    var colLegend = div
+      .selectAll(".col-legend-entry")
+      .data(colValues)
+      .join(enter => {
+        var entry = enter
+            .append("div")
+            .attr("class", "col-legend-entry")
+            .style("float", "right")
+            .style("clear", "right")
+            .style("border-right-style", "solid")
+            .style("height", "1.1em")
+            .style("line-height", "1.1em")
+            .style("border-color", function(d) {
+              return d.col;
+            })
+            .style("border-width", "10px")
+            .style("margin", "5px")
+            .style("padding-right", "5px")
+            .style("overflow", "visible")
+            .style("text-align", "left")
+            .text(function(d, i) {return d.val;})
+          ;
+      })
+      .style("left", function(d) {return d.x + "px";})
+      .style("top", function(d) {return d.y + "px";});
   }
   
-  var colLegend = div
-    .selectAll(".col-legend-entry")
-    .data(colValues)
-    .join(enter => {
-      var entry = enter
-          .append("div")
-          .attr("class", "col-legend-entry")
-          .style("float", "right")
-          .style("clear", "right")
-          .style("border-right-style", "solid")
-          .style("height", "1.1em")
-          .style("line-height", "1.1em")
-          .style("border-color", function(d) {
-            return d.col;
-          })
-          .style("border-width", "10px")
-          .style("margin", "5px")
-          .style("padding-right", "5px")
-          .style("overflow", "visible")
-          .style("text-align", "left")
-          .text(function(d, i) {return d.val;})
-        ;
-    })
-    .style("left", function(d) {return d.x + "px";})
-    .style("top", function(d) {return d.y + "px";});
-  
+  div.selectAll(".ico-legend-entry").remove();
   let icoValues = [];
   let ico_opt = div.select("#icoSelect").property("value");
   if (ico_opt != "Circle") {
-     
     data.forEach(function(dat) {
       d_opt = dat[ico_opt];
       if (!icoValues.find(el => el.val == d_opt)) {
         icoValues.push({"val": d_opt, "icon": icon_name(d_opt)});
       }
     })
-  }
-  var icoLegend = div
-    .selectAll(".ico-legend-entry")
-    .data(icoValues)
-    .join(enter => {
-      var entry = enter
-          .append("div")
-          .attr("class", "ico-legend-entry")
-          .style("float", "right")
-          .style("clear", "right")
-          .style("height", "1.1em")
-          .style("line-height", "1.1em")
-          .style("margin", "5px")
-          .style("padding-right", "5px")
-          .style("overflow", "visible")
-          .style("text-align", "left")
-          .text(d => d.val)
-        ;
-      entry.append("i")
-        .style("font-size", "18px")
-        .style("padding-left", "5px")
-        .attr("class", d => fa_icon(d.icon));
-    })
-    .style("left", function(d) {return d.x + "px";})
-    .style("top", function(d) {return d.y + "px";});
     
+    var icoLegend = div
+      .selectAll(".ico-legend-entry")
+      .data(icoValues)
+      .join(enter => {
+        var entry = enter
+            .append("div")
+            .attr("class", "ico-legend-entry")
+            .style("float", "right")
+            .style("clear", "right")
+            .style("height", "1.1em")
+            .style("line-height", "1.1em")
+            .style("margin", "5px")
+            .style("padding-right", "5px")
+            .style("overflow", "visible")
+            .style("text-align", "left")
+            .text(function (d) {return d.val;})
+          ;
+        entry.append("i")
+          .style("font-size", "18px")
+          .style("padding-left", "5px")
+          .attr("class", d => fa_icon(d.icon));
+      })
+      .style("left", function(d) {return d.x + "px";})
+      .style("top", function(d) {return d.y + "px";});
+  }
 }
 
 var simulation = d3.forceSimulation(data)
@@ -404,10 +417,10 @@ function updateRadius(e) {
     div.select("#setRadius")
         .style("background-image", sliderGradient(x))
         
-    div.selectAll(".node-group")
+    div.selectAll(".node-group > i")
       .data(data)
-      .style("border-width", function(d, i) {
-        return radius(d, i) + "px";
+      .style("font-size", function(d, i) {
+        return 1.8 * radius(d, i) + "px";
       })
     ;
     
