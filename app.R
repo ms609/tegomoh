@@ -79,8 +79,15 @@ ui <- fluidPage(
                  hidden(numericInput("whichTree", "Use tree number:",
                                      min = 1, max = 1, value = 1, step = 1)),
                  tags$div("Upload a csv or spreadsheet, where the first column",
-                                       "lists the name of each point, as given in the tree."),
-                 fileInput("metaFile", "Metadata", placeholder = "No metadata file selected",
+                          "lists the name of each sample, as given in the tree."),
+                 fileInput("metaFile", "Metadata",
+                           placeholder = "No metadata file selected",
+                           accept = c('.csv', '.txt', '.xls', '.xlsx')),
+                 tags$div("Upload a csv or spreadsheet, where the first two ",
+                          "columns list the \"from\" and \"to\" of each ",
+                          "contact event."),
+                 fileInput("contactFile", "Contacts",
+                           placeholder = "No contact tracing file selected",
                            accept = c('.csv', '.txt', '.xls', '.xlsx')),
                  textOutput(outputId = "dataStatus"),
         # ),
@@ -296,10 +303,45 @@ server <- function(input, output, session) {
     candidate
   })
 
-  metaExt <- reactive({
-    fp <- metaPath()
-    if (nchar(fp) < 2) "<none>" else substr(fp, nchar(fp) - 3, nchar(fp))
+  contactPath <- reactive({
+    fileInput <- input$contactFile
+    exampleFile <- ""
+    if (is.null(fileInput)) {
+      if (exampleFile == "") {
+        ghFile <- "https://raw.githubusercontent.com/ms609/TODO/master/example.csv"
+        candidate <- tryCatch({
+          read.csv(ghFile)
+          output$dataStatus <- renderText(
+            "Contact / example files not found; loaded from GitHub.")
+          ghFile
+        }, warning = function (e) {
+          output$dataStatus <- renderText(
+            "Contact / example files not found; could not load from GitHub.")
+          ""
+        })
+      } else {
+        output$dataStatus <- renderText(paste(
+          "Contact tracing file not found; using example from", exampleFile))
+        candidate <- exampleFile
+      }
+    } else {
+      candidate <- fileInput$datapath
+      if (is.null(candidate)) {
+        output$dataStatus <- renderText({"Contact file not found; using example."})
+        candidate <- exampleFile
+      } else {
+        r$fileName <- fileInput$name
+        output$dataStatus <- renderText({paste0("Loaded contacts from ", fileInput$name)})
+      }
+    }
+
+    # Return:
+    candidate
   })
+
+  Extension <- function(fp) {
+    if (nchar(fp) < 2) "<none>" else substr(fp, nchar(fp) - 3, nchar(fp))
+  }
 
   ReadExcel <- function(path) {
     if(!requireNamespace("readxl", quietly = TRUE)) {
@@ -309,22 +351,29 @@ server <- function(input, output, session) {
     rownames(x) <- x[, 1]
     x[, -1]
   }
-
-  metadata <- reactive({
-    fp <- metaPath()
-    ret <- switch(metaExt(),
+  
+  ReadTabular <- function(fp) {
+    ret <- switch(Extension(fp),
                   ".csv" = read.csv(fp, row.names = 1),
                   ".txt" = read.table(fp, row.names = 1),
                   ".xls" = ReadExcel(fp),
                   "xlsx" = ReadExcel(fp),
                   {
                     output$dataStatus <- renderText({
-                      paste0("Unsupported file extension: ", metaExt())})
+                      paste0("Unsupported file extension: ", Extension(fp))})
                     matrix(0, 0, 3)
                   }
     )
-
+    
     ret
+  }
+
+  metadata <- reactive({
+    ReadTabular(metaPath())
+  })
+  
+  contacts <- reactive({
+    ReadTabular(contactPath())
   })
   
   metaCols <- reactive({
@@ -373,7 +422,10 @@ server <- function(input, output, session) {
                       )
       
       r2d3(d3Data, script = "plot.js",
-           options = list(meta = colnames(md)),
+           options = list(
+             meta = colnames(md),
+             contacts = contacts()[, 1:2]
+           ),
            container = "div")
     }
   }
