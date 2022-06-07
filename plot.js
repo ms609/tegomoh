@@ -51,6 +51,37 @@ function fill_col(d) {
   return fill_opt == "Uniform" ? "steelblue" : d[fill_opt + "_col"];
 }
 
+
+var some_icons = [
+  "circle", "square", "star", "play", "diamond", "asterisk", "circle-dot", "square-plus", "circle-half-stroke","bahai", "circle-notch", "circle-stop", "sun",
+  "circle-pause", "hat-cowboy", "instalod", "at", "bacterium", "bacon",
+  "bell", "anchor", "chess-pawn", "chess-knight",  "chess-bishop", "chess-rook", "chess-queen", "chess-king"
+];
+var next_icon = 0;
+var chosen_icons = {};
+
+function icon_name(str) {
+  switch(str.toLowerCase()) {
+    case "male": return "person";
+    case "female": return "person-dress";
+    default: 
+      if (typeof(chosen_icons[str]) === "undefined") {
+        chosen_icons[str] = some_icons[next_icon];
+        ++next_icon;
+      }
+      return chosen_icons[str];
+  }
+}
+
+function fa_icon(str) {
+  return "fa fas fa-solid fa-" + str;
+}
+
+function icon_class(d) {
+  icon_opt = div.select("#icoSelect").property("value");
+  return fa_icon(icon_name(d[icon_opt]));
+}
+
 const fade = d3.transition()
 
 function mouseOver(d) {
@@ -96,7 +127,7 @@ function ticked() {
             .attr("class", "fa fas fa-solid fa-circle")
             .style("color", fill_col)
             .style("font-size", function(d, i) {
-              return (2 * radius(d, i)) + "px";
+              return (1.8 * radius(d, i)) + "px";
             })
           ;
             
@@ -112,43 +143,51 @@ function ticked() {
 }
 
 function update() {
-  var u = div
-   .selectAll(".node-group")
+  var i = div
+   .selectAll(".node-group > i")
    .data(data)
-   .join("div")
-     .style("border-color", fill_col)
-     .text(function(d, i) {
-       txt_opt = div.select("#txtSelect").property("value");
-       switch (txt_opt) {
-         case "None": return "";
-         case "Index": return i;
-         case "ID": return d["_row"];
-         default: {
-           return d[txt_opt];
+   .join("i")
+     .style("color", fill_col)
+     .attr("class", icon_class)
+   ;
+   
+  var u = div
+     .selectAll(".node-group > span")
+     .data(data)
+     .join("span")
+       .style("visibility", "visible")
+       .text(function(d, i) {
+         txt_opt = div.select("#txtSelect").property("value");
+         switch (txt_opt) {
+           case "None": return "";
+           case "Index": return i;
+           case "ID": return d["_row"];
+           default: {
+             return d[txt_opt];
+           }
          }
-       }
-     })
+       });
   ;
   
   
   let fill_opt = div.select("#colSelect").property("value");
-  let values = [];
+  let colValues = [];
   if (fill_opt != "Cluster" && fill_opt != "Uniform") {
     data.forEach(function(dat) {
       d_opt = dat[fill_opt];
-      if (!values.find(el => el.val == d_opt)) {
-        values.push({"val": d_opt, "col": dat[fill_opt + "_col"]});
+      if (!colValues.find(el => el.val == d_opt)) {
+        colValues.push({"val": d_opt, "col": dat[fill_opt + "_col"]});
       }
     })
   }
   
-  var legend = div
-    .selectAll(".legend-entry")
-    .data(values)
+  var colLegend = div
+    .selectAll(".col-legend-entry")
+    .data(colValues)
     .join(enter => {
       var entry = enter
           .append("div")
-          .attr("class", "legend-entry")
+          .attr("class", "col-legend-entry")
           .style("float", "right")
           .style("clear", "right")
           .style("border-right-style", "solid")
@@ -164,6 +203,42 @@ function update() {
           .style("text-align", "left")
           .text(function(d, i) {return d.val;})
         ;
+    })
+    .style("left", function(d) {return d.x + "px";})
+    .style("top", function(d) {return d.y + "px";});
+  
+  let icoValues = [];
+  let ico_opt = div.select("#icoSelect").property("value");
+  if (ico_opt != "Circle") {
+     
+    data.forEach(function(dat) {
+      d_opt = dat[ico_opt];
+      if (!icoValues.find(el => el.val == d_opt)) {
+        icoValues.push({"val": d_opt, "icon": icon_name(d_opt)});
+      }
+    })
+  }
+  var icoLegend = div
+    .selectAll(".ico-legend-entry")
+    .data(icoValues)
+    .join(enter => {
+      var entry = enter
+          .append("div")
+          .attr("class", "ico-legend-entry")
+          .style("float", "right")
+          .style("clear", "right")
+          .style("height", "1.1em")
+          .style("line-height", "1.1em")
+          .style("margin", "5px")
+          .style("padding-right", "5px")
+          .style("overflow", "visible")
+          .style("text-align", "left")
+          .text(d => d.val)
+        ;
+      entry.append("i")
+        .style("font-size", "18px")
+        .style("padding-left", "5px")
+        .attr("class", d => fa_icon(d.icon));
     })
     .style("left", function(d) {return d.x + "px";})
     .style("top", function(d) {return d.y + "px";});
@@ -264,6 +339,24 @@ var txtOptions = txtSelect.selectAll("option")
       .enter()
       .append("option");
 txtOptions.text(d => d).attr("value", d => d)
+
+var lblIcoSelect = div.append("label")
+      .attr("for", "icoSelect")
+      .style("float", "left")
+      .text("Icon:")
+      
+var icoSelect = div.append("select")
+      .attr("name", "icoSelect")
+      .attr("id", "icoSelect")
+      .style("float", "left")
+      .on("change", update)
+      ;
+      
+var icoOptions = icoSelect.selectAll("option")
+      .data(["Circle"].concat(options["meta"]))
+      .enter()
+      .append("option");
+icoOptions.text(d => d).attr("value", d => d)
 
 function mouseX(e) {
   let elem = e.target.getBoundingClientRect();
