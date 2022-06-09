@@ -105,7 +105,8 @@ function icon_class(d) {
   return fa_icon(icon_name(d[icon_opt]));
 }
 
-const fade = d3.transition()
+const fade = d3.transition();
+const dull = "rgb(70, 70, 70)";
 
 function mouseOver(d) {
   d3.select(this).style("z-index", 999);
@@ -117,8 +118,12 @@ function mouseOver(d) {
     .style("visibility", "visible");
   
   const i_id = d3.select(this).attr("id").replace("node", "#icon");
-  div.select(i_id).style("color", "black")
+  const old_col = div.select(i_id).style("color");
   
+  if (old_col != dull) {
+    div.select(i_id).attr("old_color", old_col);
+  }
+  div.select(i_id).style("color", dull);
 }
 
 function mouseOut(d, i) {
@@ -130,6 +135,10 @@ function mouseOut(d, i) {
     .style("visibility", "hidden");
   
   d3.select(this).style("z-index", 0);
+  
+  const i_id = d3.select(this).attr("id").replace("node", "#icon");
+  div.select(i_id).style("color", div.select(i_id).attr("old_color"));
+  div.select(i_id).attr("old_color", null);
 }
 
 function findDatum(prop, val) {
