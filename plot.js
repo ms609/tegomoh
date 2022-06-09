@@ -20,13 +20,6 @@ for (const value of Object.values(options["to"])) {
   to_i.push(typeof(value) === "number" ? value : -1);
 }
 
-var node_links = [];
-data.forEach(function (node, j) {
-  for (let i = 0; typeof(node["d" + i]) !== "undefined"; ++i) {
-    node_links.push({"source": i, "target": j, "distance": node["d" + i]});
-  }
-});
-
 div.selectAll("*").remove();
 
 // Load css again to apply to shadow root
@@ -43,16 +36,35 @@ const radMod = 25 / radMax;
 var radMult = radMod * radMax / 2;
 
 
-var links = function() {
-      var ret = [];
-      for (i = 0; i != data.length; ++i) {
-        for (j = 0; j != i; ++j) {
-          ret.push({"source": i, "target": j, "distance": data[i]["d" + j]});
-        }
+function findDatum(prop, val) {
+  return data.filter(obj => {return obj[prop] === val;})[0]
+}
+
+function getAttr(attr, i) {
+  datum = findDatum("index", i)
+  if (typeof(datum) === "object") {
+    return datum[attr];
+  }
+}
+
+var links = [];
+for (i = 0; i != data.length; ++i) {
+  for (j = 0; j != i; ++j) {
+    let link = {
+      "source": i,
+      "target": j,
+      "distance": data[i]["d" + j]
+    };
+    for (metum of options["meta"]) {
+      let metI = getAttr(metum, i);
+      if (metI == getAttr(metum, j)) {
+        link[metum] = metI;
       }
-      return ret;
     }
-    
+    links.push(link);
+  }
+}
+  
 function radius (d) {
   return radMult * (typeof(d.radius) === "undefined" ? 1 : d.radius);
 }
@@ -141,16 +153,6 @@ function mouseOut(d, i) {
   div.select(i_id).attr("old_color", null);
 }
 
-function findDatum(prop, val) {
-  return data.filter(obj => {return obj[prop] === val;})[0]
-}
-
-function getAttr(attr, i) {
-  datum = findDatum("index", i)
-  if (typeof(datum) === "object") {
-    return datum[attr];
-  }
-}
 
 function y01(d, i) {
   y0 = getAttr("y", d);
@@ -208,7 +210,7 @@ function ticked() {
   let snpDist = parseInt(div.select("#snpDist").property("value"));
   var snpLinks = div
       .selectAll(".snp-link")
-      .data(links().filter(e => e.distance <= snpDist))
+      .data(links.filter(e => e.distance <= snpDist))
       .join(enter => {
         var edge = enter
           .append("div")
@@ -314,7 +316,7 @@ function update() {
   var u = div
      .selectAll(".node-group > span")
      .data(data)
-     .join("span")
+     //.join("span")
        .style("visibility", "visible")
        .text(function(d, i) {
          txt_opt = div.select("#txtSelect").property("value");
@@ -417,7 +419,7 @@ var simulation = d3.forceSimulation(data)
   .force("center", d3.forceCenter(width / 2, height / 2))
   .force("link", d3
     .forceLink()
-    .links(links())
+    .links(links)
     .distance(function(link) {return link.distance * linkMult;})
     .strength(0.9)
   )
@@ -535,7 +537,7 @@ function updateSpacing(e) {
     
     simulation.force("link", d3
         .forceLink()
-        .links(links())
+        .links(links)
         .distance(function(link) {return link.distance * linkMult;})
         .strength(0.9)
       )
