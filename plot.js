@@ -277,7 +277,7 @@ function ticked() {
           .selectAll(".tooltip-entry")
           .data(function(d, i) {
             let datum = data[i];
-            let ret = [];
+            let ret = [{key: "ID", datum: datum["_row"]}];
             for (const key of options["meta"]) {
               if (datum[key] !== null && datum[key] !== "") {
                 ret.push({key: key, datum: datum[key]});
