@@ -20,6 +20,13 @@ for (const value of Object.values(options["to"])) {
   to_i.push(typeof(value) === "number" ? value : -1);
 }
 
+var node_links = [];
+data.forEach(function (node, j) {
+  for (let i = 0; typeof(node["d" + i]) !== "undefined"; ++i) {
+    node_links.push({"source": i, "target": j, "distance": node["d" + i]});
+  }
+});
+
 div.selectAll("*").remove();
 
 // Load css again to apply to shadow root
@@ -101,20 +108,28 @@ function icon_class(d) {
 const fade = d3.transition()
 
 function mouseOver(d) {
-  const my_id = d3.select(this).attr("id").replace("circle", "#tooltip");
+  d3.select(this).style("z-index", 999);
+  
+  const my_id = d3.select(this).attr("id").replace("node", "#tooltip");
   div.select(my_id)
     .transition()
     .ease(d3.easeLinear)
     .style("visibility", "visible");
+  
+  const i_id = d3.select(this).attr("id").replace("node", "#icon");
+  div.select(i_id).style("color", "black")
+  
 }
 
 function mouseOut(d, i) {
   
-  const my_id = d3.select(this).attr("id").replace("circle", "#tooltip");
+  const my_id = d3.select(this).attr("id").replace("node", "#tooltip");
   div.select(my_id)
     .transition()
     .ease(d3.easeLinear)
     .style("visibility", "hidden");
+  
+  d3.select(this).style("z-index", 0);
 }
 
 function findDatum(prop, val) {
@@ -181,6 +196,37 @@ function ticked() {
       })
     ;
         
+  let snpDist = parseInt(div.select("#snpDist").property("value"));
+  var snpLinks = div
+      .selectAll(".snp-link")
+      .data(links().filter(e => e.distance <= snpDist))
+      .join(enter => {
+        var edge = enter
+          .append("div")
+          .attr("class", "snp-link")
+          .style("position", "absolute")
+        ;
+      })
+      .style("top", function(d) {
+        return y01(d.source, d.target)[0] + radius(d.source, d.target) + "px";
+      })
+      .style("left", function(d, i) {
+        return x01(d.source, d.target)[0] + radius(d.source, d.target) + "px";
+      })
+      .style("height", function(d, i) {
+        return y01(d.source, d.target)[1] - y01(d.source, d.target)[0] + "px";
+      })
+      .style("width", function(d, i) {
+        return x01(d.source, d.target)[1] - x01(d.source, d.target)[0] + "px";
+      })
+      .style("background", function(d, i) {
+        return "linear-gradient(to " 
+          + (y01(d.source, d.target)[2] ? "bottom" : "top") + " "
+          + (x01(d.source, d.target)[2] ? "left" : "right")
+          + ", #fff0 calc(50% - 1px), #28a8, #fff0 calc(50% + 1px))";
+      })
+    ;
+        
   var u = div
       .selectAll(".node-group")
       .data(data)
@@ -188,6 +234,7 @@ function ticked() {
         var node = enter
             .append("div")
             .attr("class", "node-group")
+            .attr("id", function (d, i) {return "node" + i;})
             .style("position", "absolute")
             .style("width", "0px")
             .style("height", "0px")
@@ -203,21 +250,47 @@ function ticked() {
           
         node.append("i")
             .attr("class", "fa fas fa-solid fa-circle")
+            .attr("id", function (d, i) {return "icon" + i;})
             .style("color", fill_col)
             .style("font-size", function(d, i) {
               return (1.8 * radius(d, i)) + "px";
             })
           ;
             
-        node.append("span")
-            .text("Tooltip text.")
+        var tool_div = node.append("div")
             .style("visibility", "hidden")
-            .attr("font-family", "\"Gill Sans\", \"Gill Sans MT\", Arial")
-            .attr("id", function (d, i) {return "tooltip_" + i;})
-            ;
+            .style("padding", "5px")
+            .style("line-height", "revert")
+            .style("font-family", "Gill Sans, Gill Sans MT, Arial")
+            .attr("id", function (d, i) {return "tooltip" + i;})
+        
+        tool_div
+          .selectAll(".tooltip-entry")
+          .data(function(d, i) {
+            let datum = data[i];
+            let ret = [];
+            for (const key of options["meta"]) {
+              if (datum[key] !== null && datum[key] !== "") {
+                ret.push({key: key, datum: datum[key]});
+              }
+            }
+            return ret;
+            
+          })
+          .join(enter => {
+            var entry = enter
+              .append("div")
+              .attr("class", "tooltip-entry")
+              .text(d => {return d.key + ": " + d.datum;})
+              .style("line-height", "revert")
+              .style("min-height", "1.1em")
+              .style("margin", "2px")
+          });
+            
+        
       })
-      .style("left", function(d) {return d.x + "px";})
-      .style("top", function(d) {return d.y + "px";});
+      .style("left", d => {return d.x + "px";})
+      .style("top", d => {return d.y + "px";});
 }
 
 function update() {
@@ -543,4 +616,24 @@ var setRadius = div.append("div")
       .on("mouseout", radiusEnd)
       .on("mouseup", radiusEnd)
       .on("mousemove", updateRadius)
+      ;
+      
+var lblSetSNP = div.append("label")
+      .attr("for", "snpDist")
+      .style("height", "20px")
+      .style("margin", "5px")
+      .style("text-align", "right")
+      .style("float", "left")
+      .text("SNP cluster:")
+      ;
+var setSNP = div.append("input")
+      .attr("type", "number")
+      .attr("id", "snpDist")
+      .attr("value", "0")
+      .style("width", "50px")
+      .style("height", "20px")
+      .style("margin", "5px")
+      .style("text-align", "center")
+      .style("float", "left")
+      .on("change", ticked)
       ;

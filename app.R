@@ -7,7 +7,7 @@ Require <- function (packages) {
     library(pkg, character.only = TRUE)
   }
 }
-  
+
 Require(c("TreeTools", "TreeDist", "protoclust", "shiny", "r2d3"))
 
 if (!requireNamespace("shinyjs", quietly = TRUE,
