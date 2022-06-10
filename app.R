@@ -341,8 +341,8 @@ server <- function(input, output, session) {
       colnames(ret) <- paste0(colnames(ret), "_col")
       ret
     } else {
-      matrix(nrow = length(treeLabels()),
-             dimnames = list(treeLabels(), NULL))
+      structure(list(), names = character(0), class = "data.frame",
+                row.names = treeLabels())
     }
   })
 
@@ -380,7 +380,7 @@ server <- function(input, output, session) {
                       Cluster_col = clusterCol,
                       md,
                       metaCols(),
-                      "_row" = rownames(metadata())
+                      "_row" = rownames(md)
                       )
       
       

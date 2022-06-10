@@ -1,5 +1,4 @@
 // !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md), contacts = contacts, from = fromI, to = toI), container = "div", viewer = "browser"
-//// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md), contacts = contacts, from = fromI, to = toI), container = "div", viewer = "browser"
 
 // Load in document for font references
 var cssId = "fa6-css";
@@ -64,19 +63,17 @@ for (i = 0; i != data.length; ++i) {
       }
     };
     
-    if (options["meta"]) {
-      for (metum of options["meta"]) {
-        if (Object.keys(edge).includes(metum)) {
-          // Don't overwrite functional element
-          continue;
-        }
-        let met_i = data[i][metum];
-        if (met_i !== null &&
-            met_i !== "" &&
-            typeof(met_i) === "string" &&
-            met_i === data[j][metum]) {
-          edge[metum] = met_i;
-        }
+    if (options["meta"]) for (metum of options["meta"]) {
+      if (Object.keys(edge).includes(metum)) {
+        // Don't overwrite functional element
+        continue;
+      }
+      let met_i = data[i][metum];
+      if (met_i !== null &&
+          met_i !== "" &&
+          typeof(met_i) === "string" &&
+          met_i === data[j][metum]) {
+        edge[metum] = met_i;
       }
     }
     edges.push(edge);
@@ -238,36 +235,37 @@ function ticked() {
             })
           ;
         
-        var tool_div = node.append("div")
-            .style("visibility", "hidden")
-            .style("padding", "5px")
-            .style("line-height", "revert")
-            .style("font-family", "Gill Sans, Gill Sans MT, Arial")
-            .attr("id", function (d, i) {return "tooltip" + i;})
-        
-        tool_div
-          .selectAll(".tooltip-entry")
-          .data(function(d, i) {
-            let datum = data[i];
-            let ret = [{key: "ID", datum: datum["_row"]}];
-            for (const key of options["meta"]) {
-              if (datum[key] !== null && datum[key] !== "") {
-                ret.push({key: key, datum: datum[key]});
-              }
-            }
-            return ret;
-            
-          })
-          .join(enter => {
-            var entry = enter
-              .append("div")
-              .attr("class", "tooltip-entry")
-              .text(d => {return d.key + ": " + d.datum;})
+        if (options["meta"]) {
+          var tool_div = node.append("div")
+              .style("visibility", "hidden")
+              .style("padding", "5px")
               .style("line-height", "revert")
-              .style("min-height", "1.1em")
-              .style("margin", "2px")
-          });
-            
+              .style("font-family", "Gill Sans, Gill Sans MT, Arial")
+              .attr("id", function (d, i) {return "tooltip" + i;})
+          
+          tool_div
+            .selectAll(".tooltip-entry")
+            .data(function(d, i) {
+              let datum = data[i];
+              let ret = [{key: "ID", datum: datum["_row"]}];
+              if (options["meta"]) for (const key of options["meta"]) {
+                if (datum[key] !== null && datum[key] !== "") {
+                  ret.push({key: key, datum: datum[key]});
+                }
+              }
+              return ret;
+              
+            })
+            .join(enter => {
+              var entry = enter
+                .append("div")
+                .attr("class", "tooltip-entry")
+                .text(d => {return d.key + ": " + d.datum;})
+                .style("line-height", "revert")
+                .style("min-height", "1.1em")
+                .style("margin", "2px")
+            });
+        }
         
       })
       .style("left", d => {return d.x - radius(d) + "px";})
@@ -295,52 +293,52 @@ function ticked() {
       .style("top", d => {return d.y + "px";})
       ;
   
-  
-  let contactLinks = options["from"].filter((d, i) => 
-        typeof(x01(d, options["to"][i]))[1] === "number" &&
-        typeof(y01(d, options["to"][i]))[1] === "number"
-      );
-  var contactLines = div
-      .selectAll(".node-link")
-      .data(contactLinks)
-      .join(enter => {
-        var svg = enter
-          .append("svg")
-          .attr("class", "node-link")
-          .attr("xmlns", "http://www.w3.org/2000/svg")
-          .style("position", "absolute")
-        ;
-        
-        svg.append("line")
-          .attr("stroke", "#000")
-          .attr("stroke-width", "1px")
-          .attr("opacity", "0.2")
-        ;
-      })
-        .style("top", function(d, i) {
-          return y01(d, i)[0] + "px";
+  if (options["from"]) {
+    let contactLinks = options["from"].filter((d, i) => 
+          typeof(x01(d, options["to"][i]))[1] === "number" &&
+          typeof(y01(d, options["to"][i]))[1] === "number"
+        );
+    var contactLines = div
+        .selectAll(".node-link")
+        .data(contactLinks)
+        .join(enter => {
+          var svg = enter
+            .append("svg")
+            .attr("class", "node-link")
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .style("position", "absolute")
+          ;
+          
+          svg.append("line")
+            .attr("stroke", "#000")
+            .attr("stroke-width", "1px")
+            .attr("opacity", "0.2")
+          ;
         })
-        .style("left", function(d, i) {
-          return x01(d, i)[0] + "px";
-        })
-        .style("height", function(d, i) {
-          return y01(d, i)[1] - y01(d, i)[0] + "px";
-        })
-        .style("width", function(d, i) {
-          return x01(d, i)[1] - x01(d, i)[0] + "px";
-        })
-    ;
-    
-  var contactStrokes = div
-      .selectAll(".node-link > line")
-      .data(contactLinks)
-      .join()
-      .attr("x1", (d, i) => x01(d, i)[2] ? x01(d, i)[1] - x01(d, i)[0] : 0)
-      .attr("x2", (d, i) => x01(d, i)[2] ? 0 : x01(d, i)[1] - x01(d, i)[0])
-      .attr("y1", (d, i) => y01(d, i)[2] ? y01(d, i)[1] - y01(d, i)[0] : 0)
-      .attr("y2", (d, i) => y01(d, i)[2] ? 0 : y01(d, i)[1] - y01(d, i)[0])
-    ;
-
+          .style("top", function(d, i) {
+            return y01(d, i)[0] + "px";
+          })
+          .style("left", function(d, i) {
+            return x01(d, i)[0] + "px";
+          })
+          .style("height", function(d, i) {
+            return y01(d, i)[1] - y01(d, i)[0] + "px";
+          })
+          .style("width", function(d, i) {
+            return x01(d, i)[1] - x01(d, i)[0] + "px";
+          })
+      ;
+      
+    var contactStrokes = div
+        .selectAll(".node-link > line")
+        .data(contactLinks)
+        .join()
+        .attr("x1", (d, i) => x01(d, i)[2] ? x01(d, i)[1] - x01(d, i)[0] : 0)
+        .attr("x2", (d, i) => x01(d, i)[2] ? 0 : x01(d, i)[1] - x01(d, i)[0])
+        .attr("y1", (d, i) => y01(d, i)[2] ? y01(d, i)[1] - y01(d, i)[0] : 0)
+        .attr("y2", (d, i) => y01(d, i)[2] ? 0 : y01(d, i)[1] - y01(d, i)[0])
+      ;
+  }
   
   function dataX(edge) {
     return smallestFirst(data[edge.i].x, data[edge.j].x);
@@ -383,7 +381,7 @@ function ticked() {
         return span(dataX(d)) + "px";
       })
     ;
-    
+  
   var snpStrokes = div
       .selectAll(".snp-link > line")
       .data(snpEdges)
@@ -469,7 +467,7 @@ function updateStyles() {
          switch (txt_opt) {
            case "None": return "";
            case "Index": return i;
-           case "ID": return d["_row"];
+           case "ID": return typeof(d["_row"]) === "undefined" ? i : d["_row"];
            default: {
              return d[txt_opt];
            }
@@ -623,7 +621,7 @@ var colSelect = div.append("select")
       .style("float", "left")
       .on("change", updateStyles)
       ;
-      
+
 var colOptions = colSelect.selectAll("option")
       .data(["Cluster", "Uniform"].concat(options["meta"]))
       .enter()
