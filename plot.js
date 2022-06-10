@@ -28,43 +28,68 @@ var faCss = div.append("link")
   .attr("type", "text/css")
   .attr("href", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css");
 
-const linkMax = 200;
-const linkMod = 42 / linkMax;
-var linkMult = linkMod * linkMax / 2;
+// Local css
+var d3Css = div.append("link")
+  .attr("rel", "stylesheet")
+  .attr("type", "text/css")
+  .attr("href", "plot.css");
+
+const edgeMax = 200;
+const edgeMod = 42 / edgeMax;
+var edgeMult = edgeMod * edgeMax / 2;
 const radMax = 200;
 const radMod = 25 / radMax;
 var radMult = radMod * radMax / 2;
 
-
-function findDatum(prop, val) {
-  return data.filter(obj => {return obj[prop] === val;})[0]
+function smallestFirst(a, b) {
+  return (a < b) ? [a, b, 0] : [b, a, 1];
 }
 
-function getAttr(attr, i) {
-  datum = findDatum("index", i)
-  if (typeof(datum) === "object") {
-    return datum[attr];
-  }
-}
-
-var links = [];
+var edges = [];
 for (i = 0; i != data.length; ++i) {
   for (j = 0; j != i; ++j) {
-    let link = {
+    let edge = {
       "source": i,
       "target": j,
-      "distance": data[i]["d" + j]
+      "i": i,
+      "j": j,
+      "distance": data[i]["d" + j],
+      "x": function() {
+        return smallestFirst(data[this.i].x, data[this.j].x);
+      },
+      "y": function() {
+        return smallestFirst(data[this.i].y, data[this.j].y);
+      },
+      "width": function() {
+        return this.x()[1] - this.x()[0];
+      },
+      "height": function() {
+        return this.y()[1] - this.y()[0];
+      }
     };
+    
     for (metum of options["meta"]) {
-      let metI = getAttr(metum, i);
-      if (metI == getAttr(metum, j)) {
-        link[metum] = metI;
+      if (Object.keys(edge).includes(metum)) {
+        // Don't overwrite functional element
+        continue;
+      }
+      let met_i = data[i][metum];
+      if (met_i !== null &&
+          met_i !== "" &&
+          typeof(met_i) === "string" &&
+          met_i === data[j][metum]) {
+        edge[metum] = met_i;
       }
     }
-    links.push(link);
+    edges.push(edge);
   }
 }
-  
+
+var edge_copy = edges;
+function links() {
+  return edge_copy;
+}
+
 function radius (d) {
   return radMult * (typeof(d.radius) === "undefined" ? 1 : d.radius);
 }
@@ -84,6 +109,9 @@ var next_icon = 0;
 var chosen_icons = {};
 
 function icon_name(str) {
+  if (typeof(str) !== "string") {
+    return "circle";
+  }
   switch(str.toLowerCase()) {
     case "male": return "person";
     case "female": return "person-dress";
@@ -146,13 +174,23 @@ function mouseOut(d, i) {
     .ease(d3.easeLinear)
     .style("visibility", "hidden");
   
-  d3.select(this).style("z-index", 0);
+  d3.select(this).style("z-index", 100);
   
   const i_id = d3.select(this).attr("id").replace("node", "#icon");
   div.select(i_id).style("color", div.select(i_id).attr("old_color"));
   div.select(i_id).attr("old_color", null);
 }
 
+function findDatum(prop, val) {
+  return data.filter(obj => {return obj[prop] === val;})[0]
+}
+
+function getAttr(attr, i) {
+  datum = findDatum("index", i)
+  if (typeof(datum) === "object") {
+    return datum[attr];
+  }
+}
 
 function y01(d, i) {
   y0 = getAttr("y", d);
@@ -170,47 +208,54 @@ function ticked() {
   
   var lines = div
       .selectAll(".node-link")
-      .data(options["from"])
+      .data(options["from"].filter((d, i) => 
+        typeof(x01(d, options["to"][i]))[1] === "number" &&
+        typeof(y01(d, options["to"][i]))[1] === "number"
+      ))
       .join(enter => {
-        var edge = enter
-          .append("div")
+        var svg = enter
+          .append("svg")
           .attr("class", "node-link")
-          .text(function(d, i) {return `${d}_${to_i[i]}`;})
+          .attr("xmlns", "http://www.w3.org/2000/svg")
           .style("position", "absolute")
-          .style("font-family", "monospace")
-          .style("color", "#00000033")
+        ;
+        
+        svg.append("line")
+          .attr("stroke", "#0004")
+          .attr("stroke-width", "1px")
         ;
       })
-      .style("top", function(d, i) {
-        return y01(d, i)[0] + radius(d, i) + "px";
-      })
-      .style("left", function(d, i) {
-        return x01(d, i)[0] + radius(d, i) + "px";
-      })
-      .style("height", function(d, i) {
-        return y01(d, i)[1] - y01(d, i)[0] + "px";
-      })
-      .style("width", function(d, i) {
-        return x01(d, i)[1] - x01(d, i)[0] + "px";
-      })
-      .style("background", function(d, i) {
-        return "linear-gradient(to " 
-          + (y01(d, i)[2] ? "bottom" : "top") + " "
-          + (x01(d, i)[2] ? "left" : "right")
-          + ", #fff0 calc(50% - 1px), #0008, #fff0 calc(50% + 1px))";
-      })
-      .style("text-align", function(d, i) {
-        return x01(d, i)[2] ? "left" : "right";
-      })
-      .style("line-height", function(d, i) {
-        return y01(d, i)[2] ? "0px" : 2 * (y01(d, i)[1] - y01(d, i)[0]) + "px";
-      })
+        .style("top", function(d, i) {
+          return y01(d, i)[0] + "px";
+        })
+        .style("left", function(d, i) {
+          return x01(d, i)[0] + "px";
+        })
+        .style("height", function(d, i) {
+          return y01(d, i)[1] - y01(d, i)[0] + "px";
+        })
+        .style("width", function(d, i) {
+          return x01(d, i)[1] - x01(d, i)[0] + "px";
+        })
     ;
-        
+    
+  var strokes = div
+      .selectAll(".node-link > line")
+      .data(options["from"].filter((d, i) => 
+        typeof(x01(d, options["to"][i]))[1] === "number" &&
+        typeof(y01(d, options["to"][i]))[1] === "number"
+      ))
+      .join()
+      .attr("x1", (d, i) => x01(d, i)[2] ? x01(d, i)[1] - x01(d, i)[0] : 0)
+      .attr("x2", (d, i) => x01(d, i)[2] ? 0 : x01(d, i)[1] - x01(d, i)[0])
+      .attr("y1", (d, i) => y01(d, i)[2] ? y01(d, i)[1] - y01(d, i)[0] : 0)
+      .attr("y2", (d, i) => y01(d, i)[2] ? 0 : y01(d, i)[1] - y01(d, i)[0])
+    ;
+
   let snpDist = parseInt(div.select("#snpDist").property("value"));
   var snpLinks = div
       .selectAll(".snp-link")
-      .data(links.filter(e => e.distance <= snpDist))
+      .data(edges.filter(e => e.distance <= snpDist))
       .join(enter => {
         var edge = enter
           .append("div")
@@ -219,25 +264,58 @@ function ticked() {
         ;
       })
       .style("top", function(d) {
-        return y01(d.source, d.target)[0] + radius(d.source, d.target) + "px";
+        return d.y()[0] + "px";
       })
       .style("left", function(d, i) {
-        return x01(d.source, d.target)[0] + radius(d.source, d.target) + "px";
+        return d.x()[0] + "px";
       })
       .style("height", function(d, i) {
-        return y01(d.source, d.target)[1] - y01(d.source, d.target)[0] + "px";
+        return d.height() + "px";
       })
       .style("width", function(d, i) {
-        return x01(d.source, d.target)[1] - x01(d.source, d.target)[0] + "px";
+        return d.width() + "px";
       })
       .style("background", function(d, i) {
         return "linear-gradient(to " 
-          + (y01(d.source, d.target)[2] ? "bottom" : "top") + " "
-          + (x01(d.source, d.target)[2] ? "left" : "right")
+          + (d.y()[2] ? "bottom" : "top") + " "
+          + (d.x()[2] ? "left" : "right")
           + ", #fff0 calc(50% - 1px), #28a8, #fff0 calc(50% + 1px))";
       })
     ;
-        
+  /*
+  let gpLink = div.select("#lnkSelect").property("value");
+  if (gpLink != "None") {
+    var gpLinks = div
+        .selectAll(".group-link")
+        .data(edges.filter(e => typeof(e[gpLink]) !== "undefined"))
+        .join(enter => {
+          var edge = enter
+            .append("div")
+            .attr("class", "group-link")
+            .style("position", "absolute")
+          ;
+        })
+        .style("top", function(d) {
+          return d.y()[0] + "px";
+        })
+        .style("left", function(d, i) {
+          return d.x()[0] + "px";
+        })
+        .style("height", function(d, i) {
+          return d.height() + "px"; // TODO adjust for radius of target
+        })
+        .style("width", function(d, i) {
+          return d.width() + "px"; // TODO adjust for radius of target
+        })
+        .style("background", function(d, i) {
+          return "linear-gradient(to " 
+            + (d.y()[2] ? "bottom" : "top") + " "
+            + (d.x()[2] ? "left" : "right")
+            + ", #fff0 calc(50% - 1px), #a648, #fff0 calc(50% + 1px))";
+        })
+      ;
+  }*/
+  
   var u = div
       .selectAll(".node-group")
       .data(data)
@@ -249,7 +327,6 @@ function ticked() {
             .style("position", "absolute")
             .style("width", "0px")
             .style("height", "0px")
-            .style("border-radius", "1000px")
             .style("overflow", "visible")
             .style("text-align", "center")
             .style("line-height", "0")
@@ -263,11 +340,12 @@ function ticked() {
             .attr("class", "fa fas fa-solid fa-circle")
             .attr("id", function (d, i) {return "icon" + i;})
             .style("color", fill_col)
+            .style("x-index", 100)
             .style("font-size", function(d, i) {
               return (1.8 * radius(d, i)) + "px";
             })
           ;
-            
+        
         var tool_div = node.append("div")
             .style("visibility", "hidden")
             .style("padding", "5px")
@@ -300,8 +378,29 @@ function ticked() {
             
         
       })
+      .style("left", d => {return d.x - radius(d) + "px";})
+      .style("top", d => {return d.y - radius(d) + "px";})
+      ;
+      
+  var u_label = div
+      .selectAll(".node-label")
+      .data(data)
+      .join(enter => {
+        var node = enter
+            .append("span")
+            .attr("class", "node-label")
+            .style("position", "absolute")
+            .style("overflow", "visible")
+            .style("line-height", "0")
+            .style("user-select", "none")
+            .style("white-space", "nowrap")
+            .style("z-index", 200)
+          ;
+      })
       .style("left", d => {return d.x + "px";})
-      .style("top", d => {return d.y + "px";});
+      .style("top", d => {return d.y + "px";})
+      ;
+          
 }
 
 function update() {
@@ -314,10 +413,9 @@ function update() {
    ;
    
   var u = div
-     .selectAll(".node-group > span")
+     .selectAll(".node-label")
      .data(data)
-     //.join("span")
-       .style("visibility", "visible")
+     .join("span")
        .text(function(d, i) {
          txt_opt = div.select("#txtSelect").property("value");
          switch (txt_opt) {
@@ -419,8 +517,8 @@ var simulation = d3.forceSimulation(data)
   .force("center", d3.forceCenter(width / 2, height / 2))
   .force("link", d3
     .forceLink()
-    .links(links)
-    .distance(function(link) {return link.distance * linkMult;})
+    .links(links())
+    .distance(function(edge) {return edge.distance * edgeMult;})
     .strength(0.9)
   )
   .force("collision", d3.forceCollide().radius(radius))
@@ -503,6 +601,7 @@ var txtOptions = txtSelect.selectAll("option")
       .append("option");
 txtOptions.text(d => d).attr("value", d => d)
 
+
 var lblIcoSelect = div.append("label")
       .attr("for", "icoSelect")
       .style("float", "left")
@@ -521,6 +620,24 @@ var icoOptions = icoSelect.selectAll("option")
       .append("option");
 icoOptions.text(d => d).attr("value", d => d)
 
+var lblLnkSelect = div.append("label")
+      .attr("for", "lnkSelect")
+      .style("float", "left")
+      .text("Link:")
+      
+var lnkSelect = div.append("select")
+      .attr("name", "lnkSelect")
+      .attr("id", "lnkSelect")
+      .style("float", "left")
+      .on("change", update)
+      ;
+      
+var lnkOptions = lnkSelect.selectAll("option")
+      .data(["Location"].concat(options["meta"]))
+      .enter()
+      .append("option");
+lnkOptions.text(d => d).attr("value", d => d)
+
 function mouseX(e) {
   let elem = e.target.getBoundingClientRect();
   return (e.clientX - elem.left) / elem.width;
@@ -530,15 +647,15 @@ var updatingSpacing = 0;
 function updateSpacing(e) {
   if (updatingSpacing) {
     x = e.offsetX;
-    linkMult = linkMod * x;
+    edgeMult = edgeMod * x;
     
     div.select("#setSpacing")
         .style("background-image", sliderGradient(x))
     
     simulation.force("link", d3
         .forceLink()
-        .links(links)
-        .distance(function(link) {return link.distance * linkMult;})
+        .links(links())
+        .distance(function(link) {return link.distance * edgeMult;})
         .strength(0.9)
       )
       .alpha(0.5)
