@@ -29,10 +29,7 @@ var faCss = div.append("link")
   .attr("href", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css");
 
 // Local css
-var d3Css = div.append("link")
-  .attr("rel", "stylesheet")
-  .attr("type", "text/css")
-  .attr("href", "plot.css");
+var d3Css = div.append("style").text("svg{z-index: -1; overflow: visible}")
 
 const edgeMax = 200;
 const edgeMod = 42 / edgeMax;
@@ -204,117 +201,11 @@ function x01(d, i) {
   return (x0 < x1) ? [x0, x1, 0] : [x1, x0, 1];
 }
 
-function ticked() {
-  
-  var lines = div
-      .selectAll(".node-link")
-      .data(options["from"].filter((d, i) => 
-        typeof(x01(d, options["to"][i]))[1] === "number" &&
-        typeof(y01(d, options["to"][i]))[1] === "number"
-      ))
-      .join(enter => {
-        var svg = enter
-          .append("svg")
-          .attr("class", "node-link")
-          .attr("xmlns", "http://www.w3.org/2000/svg")
-          .style("position", "absolute")
-        ;
-        
-        svg.append("line")
-          .attr("stroke", "#0004")
-          .attr("stroke-width", "1px")
-        ;
-      })
-        .style("top", function(d, i) {
-          return y01(d, i)[0] + "px";
-        })
-        .style("left", function(d, i) {
-          return x01(d, i)[0] + "px";
-        })
-        .style("height", function(d, i) {
-          return y01(d, i)[1] - y01(d, i)[0] + "px";
-        })
-        .style("width", function(d, i) {
-          return x01(d, i)[1] - x01(d, i)[0] + "px";
-        })
-    ;
-    
-  var strokes = div
-      .selectAll(".node-link > line")
-      .data(options["from"].filter((d, i) => 
-        typeof(x01(d, options["to"][i]))[1] === "number" &&
-        typeof(y01(d, options["to"][i]))[1] === "number"
-      ))
-      .join()
-      .attr("x1", (d, i) => x01(d, i)[2] ? x01(d, i)[1] - x01(d, i)[0] : 0)
-      .attr("x2", (d, i) => x01(d, i)[2] ? 0 : x01(d, i)[1] - x01(d, i)[0])
-      .attr("y1", (d, i) => y01(d, i)[2] ? y01(d, i)[1] - y01(d, i)[0] : 0)
-      .attr("y2", (d, i) => y01(d, i)[2] ? 0 : y01(d, i)[1] - y01(d, i)[0])
-    ;
 
-  let snpDist = parseInt(div.select("#snpDist").property("value"));
-  var snpLinks = div
-      .selectAll(".snp-link")
-      .data(edges.filter(e => e.distance <= snpDist))
-      .join(enter => {
-        var edge = enter
-          .append("div")
-          .attr("class", "snp-link")
-          .style("position", "absolute")
-        ;
-      })
-      .style("top", function(d) {
-        return d.y()[0] + "px";
-      })
-      .style("left", function(d, i) {
-        return d.x()[0] + "px";
-      })
-      .style("height", function(d, i) {
-        return d.height() + "px";
-      })
-      .style("width", function(d, i) {
-        return d.width() + "px";
-      })
-      .style("background", function(d, i) {
-        return "linear-gradient(to " 
-          + (d.y()[2] ? "bottom" : "top") + " "
-          + (d.x()[2] ? "left" : "right")
-          + ", #fff0 calc(50% - 1px), #28a8, #fff0 calc(50% + 1px))";
-      })
-    ;
-  /*
-  let gpLink = div.select("#lnkSelect").property("value");
-  if (gpLink != "None") {
-    var gpLinks = div
-        .selectAll(".group-link")
-        .data(edges.filter(e => typeof(e[gpLink]) !== "undefined"))
-        .join(enter => {
-          var edge = enter
-            .append("div")
-            .attr("class", "group-link")
-            .style("position", "absolute")
-          ;
-        })
-        .style("top", function(d) {
-          return d.y()[0] + "px";
-        })
-        .style("left", function(d, i) {
-          return d.x()[0] + "px";
-        })
-        .style("height", function(d, i) {
-          return d.height() + "px"; // TODO adjust for radius of target
-        })
-        .style("width", function(d, i) {
-          return d.width() + "px"; // TODO adjust for radius of target
-        })
-        .style("background", function(d, i) {
-          return "linear-gradient(to " 
-            + (d.y()[2] ? "bottom" : "top") + " "
-            + (d.x()[2] ? "left" : "right")
-            + ", #fff0 calc(50% - 1px), #a648, #fff0 calc(50% + 1px))";
-        })
-      ;
-  }*/
+
+
+
+function ticked() {
   
   var u = div
       .selectAll(".node-group")
@@ -400,10 +291,160 @@ function ticked() {
       .style("left", d => {return d.x + "px";})
       .style("top", d => {return d.y + "px";})
       ;
+  
+  
+  let contactLinks = options["from"].filter((d, i) => 
+        typeof(x01(d, options["to"][i]))[1] === "number" &&
+        typeof(y01(d, options["to"][i]))[1] === "number"
+      );
+  var contactLines = div
+      .selectAll(".node-link")
+      .data(contactLinks)
+      .join(enter => {
+        var svg = enter
+          .append("svg")
+          .attr("class", "node-link")
+          .attr("xmlns", "http://www.w3.org/2000/svg")
+          .style("position", "absolute")
+        ;
+        
+        svg.append("line")
+          .attr("stroke", "#000")
+          .attr("stroke-width", "1px")
+          .attr("opacity", "0.2")
+        ;
+      })
+        .style("top", function(d, i) {
+          return y01(d, i)[0] + "px";
+        })
+        .style("left", function(d, i) {
+          return x01(d, i)[0] + "px";
+        })
+        .style("height", function(d, i) {
+          return y01(d, i)[1] - y01(d, i)[0] + "px";
+        })
+        .style("width", function(d, i) {
+          return x01(d, i)[1] - x01(d, i)[0] + "px";
+        })
+    ;
+    
+  var contactStrokes = div
+      .selectAll(".node-link > line")
+      .data(contactLinks)
+      .join()
+      .attr("x1", (d, i) => x01(d, i)[2] ? x01(d, i)[1] - x01(d, i)[0] : 0)
+      .attr("x2", (d, i) => x01(d, i)[2] ? 0 : x01(d, i)[1] - x01(d, i)[0])
+      .attr("y1", (d, i) => y01(d, i)[2] ? y01(d, i)[1] - y01(d, i)[0] : 0)
+      .attr("y2", (d, i) => y01(d, i)[2] ? 0 : y01(d, i)[1] - y01(d, i)[0])
+    ;
+
+  
+  function dataX(edge) {
+    return smallestFirst(data[edge.i].x, data[edge.j].x);
+  }
+  function dataY(edge) {
+    return smallestFirst(data[edge.i].y, data[edge.j].y);
+  }
+  function span(x) {
+    return x[1] - x[0];
+  }
+  let snpDist = parseInt(div.select("#snpDist").property("value"));
+  let snpEdges = edges.filter(e => parseInt(e.distance) <= snpDist);
+  var snpLinks = div
+      .selectAll(".snp-link")
+      .data(snpEdges)
+      .join(enter => {
+        var svg = enter
+          .append("svg")
+          .attr("class", "snp-link")
+          .attr("xmlns", "http://www.w3.org/2000/svg")
+          .attr("i", d => d.i)
+          .attr("j", d => d.j)
+          .style("position", "absolute")
+        ;
+        
+        svg.append("line")
+          .attr("stroke", "#28a")
+          .attr("opacity", "0.5")
+          .attr("stroke-width", "3px")
+        ;
+      })
+      .style("top", d => dataY(d)[0] + "px")
+      .style("left", d => dataX(d)[0] + "px")
+      .style("height", function(d, i) {
+        return span(dataY(d)) + "px";
+      })
+      .style("width", function(d, i) {
+        return span(dataX(d)) + "px";
+      })
+    ;
+    
+  var snpStrokes = div
+      .selectAll(".snp-link > line")
+      .data(snpEdges)
+      .attr("x1", (d, i) => dataX(d)[2] ? span(dataX(d)) : 0)
+      .attr("x2", (d, i) => dataX(d)[2] ? 0 : span(dataX(d)))
+      .attr("y1", (d, i) => d.y()[2] ? d.height() : 0)
+      .attr("y2", (d, i) => d.y()[2] ? 0 : d.height())
+    ;
+
+  let group_by = div.select("#lnkSelect").property("value");
+  if (group_by != "None") {
+    group = {};
+    data.forEach(d => {
+      const val = d[group_by];
+      if (typeof(group[val]) === "undefined") {
+        group[val] = {n: 1, x: d.x, y: d.y};
+      } else {
+        const n = group[val].n;
+        group[val].x = ((group[val].x * n) + d.x) / (n + 1)
+        group[val].y = ((group[val].y * n) + d.y) / (n + 1)
+        ++group[val].n;
+      }
+    });
+    var gpLinks = div
+        .selectAll(".group-link")
+        .data(data)
+        .join(enter => {
+          var svg = enter
+            .append("svg")
+            .attr("class", "group-link")
+            .attr("xmlns", "http://www.w3.org/2000/svg")
+            .style("position", "absolute")
+          ;
           
+          svg.append("line")
+            .attr("stroke", d => d[group_by + "_col"])
+            .attr("group-value", d => d[group_by])
+            .attr("stroke-width", "3px")
+            .attr("opacity", "0.5")
+            .attr("stroke-linecap", "round")
+            .attr("stroke-dasharray", "4,8")
+          ;
+        })
+        .style("top", d => Math.min(d.y, group[d[group_by]].y) + "px")
+        .style("height", d => Math.abs(d.y - group[d[group_by]].y) + "px")
+        .style("left", d => Math.min(d.x, group[d[group_by]].x) + "px")
+        .style("width", d => Math.abs(d.x - group[d[group_by]].x) + "px")
+      ;
+  
+  var gpStrokes = div
+      .selectAll(".group-link > line")
+      .data(data)
+      .attr("x1", (d, i) => d.x > group[d[group_by]].x ? 
+        Math.abs(d.x - group[d[group_by]].x) : 0)
+      .attr("x2", (d, i) => d.x < group[d[group_by]].x ?
+        Math.abs(d.x - group[d[group_by]].x) : 0)
+      .attr("y1", (d, i) => d.y > group[d[group_by]].y ? 
+        Math.abs(d.y - group[d[group_by]].y) : 0)
+      .attr("y2", (d, i) => d.y < group[d[group_by]].y ?
+        Math.abs(d.y - group[d[group_by]].y) : 0)
+    ;
+  }
+  
 }
 
-function update() {
+function updateStyles() {
   var i = div
    .selectAll(".node-group > i")
    .data(data)
@@ -504,6 +545,7 @@ function update() {
       .style("left", function(d) {return d.x + "px";})
       .style("top", function(d) {return d.y + "px";});
   }
+  
 }
 
 var simulation = d3.forceSimulation(data)
@@ -524,7 +566,6 @@ var simulation = d3.forceSimulation(data)
   .force("collision", d3.forceCollide().radius(radius))
   .on("tick", ticked)
 ;
-  
 
 
 function dragSubject(e) {
@@ -573,7 +614,7 @@ var colSelect = div.append("select")
       .attr("name", "colSelect")
       .attr("id", "colSelect")
       .style("float", "left")
-      .on("change", update)
+      .on("change", updateStyles)
       ;
       
 var colOptions = colSelect.selectAll("option")
@@ -592,7 +633,7 @@ var txtSelect = div.append("select")
       .attr("name", "txtSelect")
       .attr("id", "txtSelect")
       .style("float", "left")
-      .on("change", update)
+      .on("change", updateStyles)
       ;
       
 var txtOptions = txtSelect.selectAll("option")
@@ -611,7 +652,7 @@ var icoSelect = div.append("select")
       .attr("name", "icoSelect")
       .attr("id", "icoSelect")
       .style("float", "left")
-      .on("change", update)
+      .on("change", updateStyles)
       ;
       
 var icoOptions = icoSelect.selectAll("option")
@@ -629,11 +670,11 @@ var lnkSelect = div.append("select")
       .attr("name", "lnkSelect")
       .attr("id", "lnkSelect")
       .style("float", "left")
-      .on("change", update)
+      .on("change", updateStyles)
       ;
       
 var lnkOptions = lnkSelect.selectAll("option")
-      .data(["Location"].concat(options["meta"]))
+      .data(["None"].concat(options["meta"]))
       .enter()
       .append("option");
 lnkOptions.text(d => d).attr("value", d => d)
@@ -752,7 +793,7 @@ var lblSetSNP = div.append("label")
       .style("margin", "5px")
       .style("text-align", "right")
       .style("float", "left")
-      .text("SNP cluster:")
+      .text("SNP threshold:")
       ;
 var setSNP = div.append("input")
       .attr("type", "number")
