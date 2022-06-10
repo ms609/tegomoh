@@ -389,7 +389,9 @@ function ticked() {
     ;
 
   let group_by = div.select("#lnkSelect").property("value");
-  if (group_by != "None") {
+  if (group_by == "None") {
+    div.selectAll(".group-link").remove()
+  } else {
     group = {};
     data.forEach(d => {
       const val = d[group_by];
