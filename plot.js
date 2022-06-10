@@ -282,7 +282,9 @@ function ticked() {
             .attr("class", "node-label")
             .style("position", "absolute")
             .style("overflow", "visible")
-            .style("line-height", "0")
+            .style("line-height", 0)
+            .style("height", 0)
+            .style("width", 0)
             .style("user-select", "none")
             .style("white-space", "nowrap")
             .style("z-index", 200)
@@ -361,6 +363,7 @@ function ticked() {
           .attr("i", d => d.i)
           .attr("j", d => d.j)
           .style("position", "absolute")
+          .style("visibility", "hidden")
         ;
         
         svg.append("line")
@@ -369,6 +372,7 @@ function ticked() {
           .attr("stroke-width", "3px")
         ;
       })
+      .style("visibility", "visible")
       .style("top", d => dataY(d)[0] + "px")
       .style("left", d => dataX(d)[0] + "px")
       .style("height", function(d, i) {
@@ -672,7 +676,7 @@ var lnkSelect = div.append("select")
       .attr("name", "lnkSelect")
       .attr("id", "lnkSelect")
       .style("float", "left")
-      .on("change", updateStyles)
+      .on("change", x => simulation.alpha(0.01).alphaTarget(0).restart())
       ;
       
 var lnkOptions = lnkSelect.selectAll("option")
@@ -806,5 +810,5 @@ var setSNP = div.append("input")
       .style("margin", "5px")
       .style("text-align", "center")
       .style("float", "left")
-      .on("change", ticked)
+      .on("change", x => simulation.alpha(0.01).alphaTarget(0).restart())
       ;
