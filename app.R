@@ -225,7 +225,7 @@ server <- function(input, output, session) {
     if (is.null(fileInput)) {
       if (exampleFile == "") {
         ghFile <- "https://raw.githubusercontent.com/ms609/TODO/master/example.csv"
-        ghFile <- "C:/users/pjjg18/downloads/Testing_Nextstrain_Metadata.csv"
+        # ghFile <- "C:/users/pjjg18/downloads/Testing_Nextstrain_Metadata.csv"
         candidate <- tryCatch({
           read.csv(ghFile)
           output$dataStatus <- renderText(
@@ -329,12 +329,21 @@ server <- function(input, output, session) {
     ReadTabular(contactPath())
   })
   
+  treeLabels <- reactive({tree()$tip.label})
+  
   metaCols <- reactive({
-    vapply(metadata(), function (x) {
-      fac <- as.factor(x)
-      nLevel <- length(levels(fac))
-      hcl.colors(nLevel, "dark2")[fac]
-    }, character(nrow(metadata())))
+    if (length(metadata())) {
+      ret <- vapply(metadata(), function (x) {
+        fac <- as.factor(x)
+        nLevel <- length(levels(fac))
+        hcl.colors(nLevel, "dark2")[fac]
+      }, character(nrow(metadata())))
+      colnames(ret) <- paste0(colnames(ret), "_col")
+      ret
+    } else {
+      matrix(nrow = length(treeLabels()),
+             dimnames = list(treeLabels(), NULL))
+    }
   })
 
   TreePlot <- function() {
@@ -361,17 +370,17 @@ server <- function(input, output, session) {
       cluster <- clusters()$clust
       clusterCol <- hcl.colors(max(cluster), "dark2")[cluster]
       
-      
       md <- metadata()
-      mc <- metaCols()
-      colnames(mc) <- paste0(colnames(mc), "_col")
+      if (!length(md)) {
+        md <- metaCols()
+      }
       
       d3Data <- cbind(d, m,
                       cluster = cluster,
                       Cluster_col = clusterCol,
-                      metadata(),
-                      mc,
-                      "_row" = rownames(md)
+                      md,
+                      metaCols(),
+                      "_row" = rownames(metadata())
                       )
       
       

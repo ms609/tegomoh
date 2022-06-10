@@ -1,6 +1,5 @@
 // !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md), contacts = contacts, from = fromI, to = toI), container = "div", viewer = "browser"
-
-//// !preview r2d3 data = cbind(d0 = c(0, 0, 3, 8), d1 = c(0, 0, 3, 8), d2 = c(3, 3, 0, 5), d3 = c(8, 8, 5, 0), mappedX = c(1, 1, 0, 0), mappedY = c(1, 0, 0, 1), cluster = c(1, 1, 2, 3), Cluster_col = c("red", "red", "steelblue", "green"), read.csv("Testing_Nextstrain_Metadata.csv", row.names = 1)[1:4, ], Age_col = c("red", "orange", "yellow", "grey"), Gender_col = c("pink", "blue", "blue", "pink"), Vaccination_status_col = c("red", "green", "red", "red")), options = list(col = hcl.colors(4), txt = letters[1:4], meta = c("Gender", "Location", "Age", "Vaccination_status")), container = "div", viewer = "browser"
+//// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(meta = colnames(md), contacts = contacts, from = fromI, to = toI), container = "div", viewer = "browser"
 
 // Load in document for font references
 var cssId = "fa6-css";
@@ -65,17 +64,19 @@ for (i = 0; i != data.length; ++i) {
       }
     };
     
-    for (metum of options["meta"]) {
-      if (Object.keys(edge).includes(metum)) {
-        // Don't overwrite functional element
-        continue;
-      }
-      let met_i = data[i][metum];
-      if (met_i !== null &&
-          met_i !== "" &&
-          typeof(met_i) === "string" &&
-          met_i === data[j][metum]) {
-        edge[metum] = met_i;
+    if (options["meta"]) {
+      for (metum of options["meta"]) {
+        if (Object.keys(edge).includes(metum)) {
+          // Don't overwrite functional element
+          continue;
+        }
+        let met_i = data[i][metum];
+        if (met_i !== null &&
+            met_i !== "" &&
+            typeof(met_i) === "string" &&
+            met_i === data[j][metum]) {
+          edge[metum] = met_i;
+        }
       }
     }
     edges.push(edge);
