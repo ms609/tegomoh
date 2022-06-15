@@ -756,12 +756,14 @@ function radiusEnd(e) {
 }
 
 function sliderGradient(px) {
-  return "linear-gradient(90deg, steelblue, transparent " + px + "px, steelblue)";
+  return "linear-gradient(90deg, steelblue " + (px - 1) +
+    "px, black " + (px + 1) + "px, transparent " + (px + 2) + "px, transparent)";
 }
 
 var setSpacing = div.append("div")
       .attr("id", "setSpacing")
       .style("background-image", sliderGradient(100))
+      .style("border", "black solid 1px")
       .style("width", "200px")
       .style("height", "20px")
       .style("margin", "5px")
@@ -769,7 +771,7 @@ var setSpacing = div.append("div")
       .style("text-align", "center")
       .style("float", "left")
       .style("clear", "left")
-      .text("Spacing")
+      .text("- Spacing +")
       .on("mousedown", spacingStart)
       .on("mouseout", spacingEnd)
       .on("mouseup", spacingEnd)
@@ -779,13 +781,14 @@ var setSpacing = div.append("div")
 var setRadius = div.append("div")
       .attr("id", "setRadius")
       .style("background-image", sliderGradient(100))
+      .style("border", "black solid 1px")
       .style("width", "200px")
       .style("height", "20px")
       .style("margin", "5px")
       .style("user-select", "none")
       .style("text-align", "center")
       .style("float", "left")
-      .text("Radius")
+      .text("- Point size +")
       .on("mousedown", radiusStart)
       .on("mouseout", radiusEnd)
       .on("mouseup", radiusEnd)
