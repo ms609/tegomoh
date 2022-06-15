@@ -54,9 +54,11 @@ mc <- vapply(md, function (x) {
 }, character(nrow(md)))
 
 colnames(mc) <- paste0(colnames(mc), "_col")
-md <- structure(list(), names = character(0), class = "data.frame",
-            row.names = tree$tip)
-mc <- unname(md)
+if (useMetadata <- FALSE) {
+  md <- structure(list(), names = character(0), class = "data.frame",
+              row.names = tree$tip)
+  mc <- unname(md)
+}
 
 rownames(d) <- rownames(md)
 

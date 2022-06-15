@@ -1,6 +1,7 @@
-// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(tree = write.tree(tree), meta = colnames(md), contacts = contacts, from = fromI, to = toI), container = "div", viewer = "browser"
+// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(tree = write.tree(tree), meta = colnames(md), from = fromI, to = toI), container = "div", viewer = "browser"
 
 const treeWidth = 300;
+const uniformCol = "All same"
 
 // https://github.com/CDCgov/TidyTree/dist/tidytree.--min.--js: Apache License 2.0
 var TidyTree = (function () {
@@ -2475,7 +2476,7 @@ function radius (d) {
 
 function fill_col(d) {
   fill_opt = div.select("#colSelect").property("value");
-  return fill_opt == "Uniform" ? "steelblue" : d[fill_opt + "_col"];
+  return fill_opt == uniformCol ? "steelblue" : d[fill_opt + "_col"];
 }
 
 
@@ -2863,7 +2864,7 @@ function updateStyles() {
   div.selectAll(".col-legend-entry").remove();
   let colValues = [];
   let fill_opt = div.select("#colSelect").property("value");
-  if (fill_opt != "Cluster" && fill_opt != "Uniform") {
+  if (fill_opt != "Cluster" && fill_opt != uniformCol) {
     data.forEach(function(dat) {
       d_opt = dat[fill_opt];
       if (!colValues.find(el => el.val == d_opt)) {
@@ -3032,7 +3033,7 @@ var colSelect = optionsDiv.append("select")
       ;
 
 var colOptions = colSelect.selectAll("option")
-      .data(["Cluster", "Uniform"].concat(options["meta"]))
+      .data(["Cluster", uniformCol].concat(options["meta"]))
       .enter()
       .append("option");
 
