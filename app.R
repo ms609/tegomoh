@@ -86,12 +86,7 @@ ui <- fluidPage(
 
     mainPanel(
       fluidRow(
-        column(3,
-               plotOutput(outputId = "treePlot", height = "1200px")
-        ),
-        column(9,
-               d3Output(outputId = "d3Plot", height = "1200px", width = "1200px")
-        ),
+        d3Output(outputId = "d3Plot", height = "1200px", width = "1200px")
       ),
       fluidRow(textOutput(outputId = "plotQual")),
       # fluidRow(id = "saveButtons",
@@ -301,17 +296,6 @@ server <- function(input, output, session) {
     }
   })
 
-  TreePlot <- function() {
-    if (treeLoaded()) {
-      cluster <- clusters()$clust
-      colby <- hcl.colors(max(cluster), "dark2")[cluster]
-      
-      par(mar = rep(0, 4))
-      plot(tree(), tip.color = colby, cex = 0.7)
-      add.scale.bar(x = 0.5, y = 0.5, lwd = 3)
-    }
-  }
-
   MapPlot <- function() {
     if (treeLoaded()) {
       
@@ -348,7 +332,6 @@ server <- function(input, output, session) {
     }
   }
 
-  output$treePlot <- renderPlot(TreePlot())
   output$d3Plot <- renderD3(MapPlot())
   output$plotQual <- renderText({
     if (treeLoaded()) {
