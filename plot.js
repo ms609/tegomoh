@@ -2789,7 +2789,9 @@ function ticked() {
     div.selectAll(".group-link").remove()
   } else {
     group = {};
-    data.forEach(d => {
+    let groupedData = data.filter(d => d[group_by] ? true : false);
+    
+    groupedData.forEach(d => {
       const val = d[group_by];
       if (typeof(group[val]) === "undefined") {
         group[val] = {n: 1, x: d.x, y: d.y};
@@ -2800,9 +2802,10 @@ function ticked() {
         ++group[val].n;
       }
     });
+    
     var gpLinks = div
         .selectAll(".group-link")
-        .data(data)
+        .data(groupedData)
         .join(enter => {
           var svg = enter
             .append("svg")
@@ -2812,8 +2815,6 @@ function ticked() {
           ;
           
           svg.append("line")
-            .attr("stroke", d => d[group_by + "_col"])
-            .attr("group-value", d => d[group_by])
             .attr("stroke-width", "3px")
             .attr("opacity", "0.5")
             .attr("stroke-linecap", "round")
@@ -2826,9 +2827,15 @@ function ticked() {
         .style("width", d => Math.abs(d.x - group[d[group_by]].x) + "px")
       ;
   
+  div.selectAll(".group-link > line")
+    .data(groupedData)
+    .attr("group-value", d => d[group_by])
+    .attr("stroke", d => d[group_by + "_col"])
+    ;    
+  
   var gpStrokes = div
       .selectAll(".group-link > line")
-      .data(data)
+      .data(groupedData)
       .attr("x1", (d, i) => d.x > group[d[group_by]].x ? 
         Math.abs(d.x - group[d[group_by]].x) : 0)
       .attr("x2", (d, i) => d.x < group[d[group_by]].x ?
