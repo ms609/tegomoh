@@ -2565,25 +2565,67 @@ function darkenLeaves(id) {
   })
 }
 
-function overNode(d) {
-  darkenNode(this);
-  darkenLeaves(this["__data__"]["_row"])
-}
-
-function outNode(d, i) {
-  
-  const my_id = d3.select(this).attr("id").replace("node", "#tooltip");
+function lightenNode(node) {
+  const my_id = d3.select(node).attr("id").replace("node", "#tooltip");
   div.select(my_id)
     .transition()
     .ease(d3.easeLinear)
     .style("visibility", "hidden");
   
-  d3.select(this).style("z-index", 100);
+  d3.select(node).style("z-index", 100);
   
-  const i_id = d3.select(this).attr("id").replace("node", "#icon");
+  const i_id = d3.select(node).attr("id").replace("node", "#icon");
   div.select(i_id).style("color", div.select(i_id).attr("old_color"));
   div.select(i_id).attr("old_color", null);
-  updateTree()
+}
+
+function overNode(d) {
+  darkenNode(this);
+  darkenLeaves(this["__data__"]["_row"]);
+}
+
+function outNode(d) {
+  lightenNode(this);
+  updateTree();
+}
+
+function darkenID(id) {
+  div.selectAll(".node-group")
+    .filter(el => el["_row"] == id)
+    .nodes()
+    .forEach(darkenNode)
+  ;
+}
+
+function lightenID(id) {
+    div.selectAll(".node-group")
+    .filter(el => el["_row"] == id)
+    .nodes()
+    .forEach(lightenNode)
+  ;
+}
+
+function overTreeLeaf(d) {
+  const id = this["__data__"].data.id;
+  darkenLeaves(id);
+  darkenID(id);
+}
+
+function overTreeLabel(d) {
+  const id = this["__data__"].data.id;
+  darkenLeaves(id);
+  darkenID(id);
+}
+
+function outTreeLeaf(d) {
+  const id = this["__data__"].data.id;
+  lightenID(id);
+  updateTree();
+}
+
+function outTreeLabel(d) {
+  lightenID(this["__data__"].data.id);
+  updateTree();
 }
 
 function findDatum(prop, val) {
@@ -3208,12 +3250,16 @@ function updateTree() {
       d3.select(el)
         .style("fill", fill_col(d))
         .style("r", radMult * treeRad)
+        .on("mouseover", overTreeLeaf)
+        .on("mouseout", outTreeLeaf)
     })
     .eachLeafLabel(function (el, dat) {
       const d = findDatum("_row", dat.data.id);
       d3.select(el)
         .style("fill", fill_col(d))
         .style("font-weight", "normal")
+        .on("mouseover", overTreeLabel)
+        .on("mouseout", outTreeLabel)
     });
 }
 
