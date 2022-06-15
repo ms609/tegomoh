@@ -92,10 +92,10 @@ ui <- fluidPage(
     mainPanel(
       fluidRow(
         column(3,
-               plotOutput(outputId = "treePlot", height = "600px")
+               plotOutput(outputId = "treePlot", height = "1200px")
         ),
         column(9,
-               d3Output(outputId = "d3Plot", height = "600px", width = "600px")
+               d3Output(outputId = "d3Plot", height = "1200px", width = "1200px")
         ),
       ),
       fluidRow(textOutput(outputId = "plotQual")),

@@ -16,7 +16,7 @@ clusters <- {
   pamSil <- pamSils[bestPam]
   pamCluster <- pamClusters[[bestPam]]$cluster
   
-  hTree <- protoclust(as.dist(distances))
+  hTree <- protoclust::protoclust(as.dist(distances))
   hClusters <- lapply(possibleClusters, function(k) cutree(hTree, k = k))
   hSils <- vapply(hClusters, function(hCluster) {
     mean(cluster::silhouette(hCluster, distances)[, 3])
@@ -54,6 +54,9 @@ mc <- vapply(md, function (x) {
 }, character(nrow(md)))
 
 colnames(mc) <- paste0(colnames(mc), "_col")
+md <- structure(list(), names = character(0), class = "data.frame",
+            row.names = tree$tip)
+mc <- unname(md)
 
 rownames(d) <- rownames(md)
 
