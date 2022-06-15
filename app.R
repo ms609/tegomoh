@@ -395,6 +395,7 @@ server <- function(input, output, session) {
       
       r2d3(d3Data, script = "plot.js",
            options = list(
+             tree = write.tree(tree()),
              meta = colnames(md),
              from = fromI,
              to = toI
