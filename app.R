@@ -353,6 +353,7 @@ server <- function(input, output, session) {
       
       par(mar = rep(0, 4))
       plot(tree(), tip.color = colby, cex = 0.7)
+      add.scale.bar(x = 0.5, y = 0.5, lwd = 3)
     }
   }
 
