@@ -81,11 +81,6 @@ ui <- fluidPage(
       fileInput("metaFile", "Metadata",
                 placeholder = "No metadata file selected",
                 accept = c('.csv', '.txt', '.xls', '.xlsx')),
-      # tags$div("Upload a csv or spreadsheet, where the first two columns list ",
-      #          "the \"from\" and \"to\" of each contact event."),
-      # fileInput("contactFile", "Contacts",
-      #           placeholder = "No contact tracing file selected",
-      #           accept = c('.csv', '.txt', '.xls', '.xlsx')),
       textOutput(outputId = "dataStatus"),
     ),
 
@@ -256,42 +251,6 @@ server <- function(input, output, session) {
     candidate
   })
 
-  contactPath <- reactive({
-    fileInput <- input$contactFile
-    exampleFile <- ""
-    if (is.null(fileInput)) {
-      if (exampleFile == "") {
-        ghFile <- "https://raw.githubusercontent.com/ms609/TODO/master/example.csv"
-        candidate <- tryCatch({
-          read.csv(ghFile)
-          output$dataStatus <- renderText(
-            "Contact / example files not found; loaded from GitHub.")
-          ghFile
-        }, warning = function (e) {
-          output$dataStatus <- renderText(
-            "Contact / example files not found; could not load from GitHub.")
-          ""
-        })
-      } else {
-        output$dataStatus <- renderText(paste(
-          "Contact tracing file not found; using example from", exampleFile))
-        candidate <- exampleFile
-      }
-    } else {
-      candidate <- fileInput$datapath
-      if (is.null(candidate)) {
-        output$dataStatus <- renderText({"Contact file not found; using example."})
-        candidate <- exampleFile
-      } else {
-        r$fileName <- fileInput$name
-        output$dataStatus <- renderText({paste0("Loaded contacts from ", fileInput$name)})
-      }
-    }
-
-    # Return:
-    candidate
-  })
-
   Extension <- function(fp) {
     if (nchar(fp) < 2) "<none>" else substr(fp, nchar(fp) - 3, nchar(fp))
   }
@@ -323,10 +282,6 @@ server <- function(input, output, session) {
 
   metadata <- reactive({
     ReadTabular(metaPath(), row.names = 1)
-  })
-  
-  contacts <- reactive({
-    ReadTabular(contactPath())
   })
   
   treeLabels <- reactive({tree()$tip.label})
@@ -384,20 +339,10 @@ server <- function(input, output, session) {
                       "_row" = rownames(md)
                       )
       
-      
-      if (length(contacts())) {
-        fromI <- match(contacts()[, 1], tree()$tip.label)
-        toI <- match(contacts()[, 2], tree()$tip.label)
-      } else {
-        fromI <- integer(0)
-        toI <- integer(0)
-      }
-      
       r2d3(d3Data, script = "plot.js",
            options = list(
-             meta = colnames(md),
-             from = fromI,
-             to = toI
+             tree = write.tree(tree()),
+             meta = colnames(md)
            ),
            container = "div")
     }
