@@ -1,6 +1,7 @@
-// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(tree = write.tree(tree), meta = colnames(md), from = fromI, to = toI), container = "div", viewer = "browser"
+// !preview r2d3 data = {source("r2d3-data.R"); d3Data}, options = list(tree = write.tree(tree), meta = colnames(md)), container = "div", viewer = "browser"
 
 const treeWidth = 300;
+const treeRad = 1/3;
 const uniformCol = "All same"
 
 // https://github.com/CDCgov/TidyTree/dist/tidytree.--min.--js: Apache License 2.0
@@ -2398,11 +2399,6 @@ if (!document.getElementById(cssId)) {
     head.appendChild(link);
 }
 
-var to_i = [];
-for (const value of Object.values(options["to"])) {
-  to_i.push(typeof(value) === "number" ? value : -1);
-}
-
 div.selectAll("*").remove();
 
 // Load css again to apply to shadow root
@@ -2412,7 +2408,11 @@ var faCss = div.append("link")
   .attr("href", "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css");
 
 // Local css
-var d3Css = div.append("style").text("svg{z-index: -1; overflow: visible}");
+var d3Css = div.append("style")
+  .text("svg{z-index: -1; overflow: visible;}" + 
+  ".option-div{float: left; padding: 5px;}" + 
+  ".option-div > label{padding-right: 5px;}" + 
+  "text, div{font-family: Gill Sans, Gill Sans MT;}");
 
 const edgeMax = 200;
 const edgeMod = 42 / edgeMax;
@@ -2528,16 +2528,16 @@ function icon_class(d) {
 const fade = d3.transition();
 const dull = "rgb(70, 70, 70)";
 
-function mouseOver(d) {
-  d3.select(this).style("z-index", 999);
+function darkenNode(node) {
+  d3.select(node).style("z-index", 999);
   
-  const my_id = d3.select(this).attr("id").replace("node", "#tooltip");
+  const my_id = d3.select(node).attr("id").replace("node", "#tooltip");
   div.select(my_id)
     .transition()
     .ease(d3.easeLinear)
     .style("visibility", "visible");
   
-  const i_id = d3.select(this).attr("id").replace("node", "#icon");
+  const i_id = d3.select(node).attr("id").replace("node", "#icon");
   const old_col = div.select(i_id).style("color");
   
   if (old_col != dull) {
@@ -2546,7 +2546,31 @@ function mouseOver(d) {
   div.select(i_id).style("color", dull);
 }
 
-function mouseOut(d, i) {
+function darkenLeaves(id) {
+  let hotLeaves = div
+    .selectAll("g.tidytree-node-leaf")
+    .filter(d => d.data.id == id)
+    .nodes();
+    
+  hotLeaves.forEach(el => {
+    let g = d3.select(el);
+    g.selectAll("circle")
+      .style("r", radMult * treeRad * 2)
+      .style("fill", dull)
+    ;
+    g.selectAll("text")
+      .style("fill", dull)
+      .style("font-weight", "bold")
+    ;
+  })
+}
+
+function overNode(d) {
+  darkenNode(this);
+  darkenLeaves(this["__data__"]["_row"])
+}
+
+function outNode(d, i) {
   
   const my_id = d3.select(this).attr("id").replace("node", "#tooltip");
   div.select(my_id)
@@ -2559,6 +2583,7 @@ function mouseOut(d, i) {
   const i_id = d3.select(this).attr("id").replace("node", "#icon");
   div.select(i_id).style("color", div.select(i_id).attr("old_color"));
   div.select(i_id).attr("old_color", null);
+  updateTree()
 }
 
 function findDatum(prop, val) {
@@ -2570,18 +2595,6 @@ function getAttr(attr, i) {
   if (typeof(datum) === "object") {
     return datum[attr];
   }
-}
-
-function y01(d, i) {
-  y0 = getAttr("y", d);
-  y1 = getAttr("y", to_i[i]);
-  return (y0 < y1) ? [y0, y1, 0] : [y1, y0, 1];
-}
-
-function x01(d, i) {
-  x0 = getAttr("x", d);
-  x1 = getAttr("x", to_i[i]);
-  return (x0 < x1) ? [x0, x1, 0] : [x1, x0, 1];
 }
 
 
@@ -2606,8 +2619,8 @@ function ticked() {
             .style("line-height", "0")
             .style("user-select", "none")
             .style("white-space", "nowrap")
-            .on("mouseover", mouseOver)
-            .on("mouseout", mouseOut)
+            .on("mouseover", overNode)
+            .on("mouseout", outNode)
           ;
           
         node.append("i")
@@ -2677,53 +2690,6 @@ function ticked() {
       .style("left", d => {return d.x + "px";})
       .style("top", d => {return d.y + "px";})
       ;
-  
-  if (options["from"]) {
-    let contactLinks = options["from"].filter((d, i) => 
-          typeof(x01(d, options["to"][i]))[1] === "number" &&
-          typeof(y01(d, options["to"][i]))[1] === "number"
-        );
-    var contactLines = div
-        .selectAll(".node-link")
-        .data(contactLinks)
-        .join(enter => {
-          var svg = enter
-            .append("svg")
-            .attr("class", "node-link")
-            .attr("xmlns", "http://www.w3.org/2000/svg")
-            .style("position", "absolute")
-          ;
-          
-          svg.append("line")
-            .attr("stroke", "#000")
-            .attr("stroke-width", "1px")
-            .attr("opacity", "0.2")
-          ;
-        })
-          .style("top", function(d, i) {
-            return y01(d, i)[0] + "px";
-          })
-          .style("left", function(d, i) {
-            return x01(d, i)[0] + "px";
-          })
-          .style("height", function(d, i) {
-            return y01(d, i)[1] - y01(d, i)[0] + "px";
-          })
-          .style("width", function(d, i) {
-            return x01(d, i)[1] - x01(d, i)[0] + "px";
-          })
-      ;
-      
-    var contactStrokes = div
-        .selectAll(".node-link > line")
-        .data(contactLinks)
-        .join()
-        .attr("x1", (d, i) => x01(d, i)[2] ? x01(d, i)[1] - x01(d, i)[0] : 0)
-        .attr("x2", (d, i) => x01(d, i)[2] ? 0 : x01(d, i)[1] - x01(d, i)[0])
-        .attr("y1", (d, i) => y01(d, i)[2] ? y01(d, i)[1] - y01(d, i)[0] : 0)
-        .attr("y2", (d, i) => y01(d, i)[2] ? 0 : y01(d, i)[1] - y01(d, i)[0])
-      ;
-  }
   
   function dataX(edge) {
     return smallestFirst(data[edge.i].x, data[edge.j].x);
@@ -3017,15 +2983,23 @@ let tidyTree = new TidyTree(options["tree"], {
 
 var optionsDiv = div.append("div")
   .attr("id", "optionsDiv")
-  .style("float", "left")
+  .style("position", "fixed")
+  .style("top", "5px")
+  .style("padding-left", treeWidth + "px")
   ;
 
-var lblColSelect = optionsDiv.append("label")
+const divColSelect = optionsDiv.append("div").attr("class", "option-div");
+const divTxtSelect = optionsDiv.append("div").attr("class", "option-div");
+const divIcoSelect = optionsDiv.append("div").attr("class", "option-div");
+const divLnkSelect = optionsDiv.append("div").attr("class", "option-div");
+const divSnpSelect = optionsDiv.append("div").attr("class", "option-div");
+
+var lblColSelect = divColSelect.append("label")
       .attr("for", "colSelect")
       .style("float", "left")
       .text("Colour by:")
       
-var colSelect = optionsDiv.append("select")
+var colSelect = divColSelect.append("select")
       .attr("name", "colSelect")
       .attr("id", "colSelect")
       .style("float", "left")
@@ -3039,12 +3013,12 @@ var colOptions = colSelect.selectAll("option")
 
 colOptions.text(d => d).attr("value", d => d)
       
-var lblTxtSelect = optionsDiv.append("label")
+var lblTxtSelect = divTxtSelect.append("label")
       .attr("for", "txtSelect")
       .style("float", "left")
       .text("Label:")
       
-var txtSelect = optionsDiv.append("select")
+var txtSelect = divTxtSelect.append("select")
       .attr("name", "txtSelect")
       .attr("id", "txtSelect")
       .style("float", "left")
@@ -3058,12 +3032,12 @@ var txtOptions = txtSelect.selectAll("option")
 txtOptions.text(d => d).attr("value", d => d)
 
 
-var lblIcoSelect = optionsDiv.append("label")
+var lblIcoSelect = divIcoSelect.append("label")
       .attr("for", "icoSelect")
       .style("float", "left")
       .text("Icon:")
       
-var icoSelect = optionsDiv.append("select")
+var icoSelect = divIcoSelect.append("select")
       .attr("name", "icoSelect")
       .attr("id", "icoSelect")
       .style("float", "left")
@@ -3076,15 +3050,13 @@ var icoOptions = icoSelect.selectAll("option")
       .append("option");
 icoOptions.text(d => d).attr("value", d => d)
 
-var lblLnkSelect = optionsDiv.append("label")
+var lblLnkSelect = divLnkSelect.append("label")
       .attr("for", "lnkSelect")
-      .style("float", "left")
       .text("Link:")
       
-var lnkSelect = optionsDiv.append("select")
+var lnkSelect = divLnkSelect.append("select")
       .attr("name", "lnkSelect")
       .attr("id", "lnkSelect")
-      .style("float", "left")
       .on("change", x => simulation.alpha(0.01).alphaTarget(0).restart())
       ;
       
@@ -3169,7 +3141,7 @@ function radiusEnd(e) {
 
 function sliderGradient(px) {
   return "linear-gradient(90deg, steelblue " + (px - 1) +
-    "px, black " + (px + 1) + "px, transparent " + (px + 2) + "px, transparent)";
+    "px, " + dull + " " + (px + 1) + "px, transparent " + (px + 2) + "px, transparent)";
 }
 
 var setSpacing = optionsDiv.append("div")
@@ -3207,7 +3179,7 @@ var setRadius = optionsDiv.append("div")
       .on("mousemove", updateRadius)
       ;
       
-var lblSetSNP = optionsDiv.append("label")
+var lblSetSNP = divSnpSelect.append("label")
       .attr("for", "snpDist")
       .style("height", "20px")
       .style("margin", "5px")
@@ -3215,7 +3187,7 @@ var lblSetSNP = optionsDiv.append("label")
       .style("float", "left")
       .text("SNP threshold:")
       ;
-var setSNP = optionsDiv.append("input")
+var setSNP = divSnpSelect.append("input")
       .attr("type", "number")
       .attr("id", "snpDist")
       .attr("value", "0")
@@ -3235,11 +3207,13 @@ function updateTree() {
       
       d3.select(el)
         .style("fill", fill_col(d))
-        .style("r", radMult / 3)
+        .style("r", radMult * treeRad)
     })
     .eachLeafLabel(function (el, dat) {
       const d = findDatum("_row", dat.data.id);
-      d3.select(el).style("fill", fill_col(d))
+      d3.select(el)
+        .style("fill", fill_col(d))
+        .style("font-weight", "normal")
     });
 }
 
